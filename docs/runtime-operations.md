@@ -1,15 +1,17 @@
 # Runtime operations
 
-The Compose stack is a local development runtime. Step 2 has only synthetic
-probes; it is not a production ticket agent. Production TLS, identity integration,
+The Compose stack is a local development runtime. Steps 2–3 provide runtime probes
+and a ticket execution foundation with an opt-in synthetic connector. Production TLS, identity integration,
 restricted administrator connectors, secret handling and rollout are later work.
 
 ## Modes and pause controls
 
 `AGENTIC_DISPATCH_MODE` and `AGENTIC_MIRZA_MODE` accept `observe`, `review` and
-`automatic`, defaulting to `observe`. In this scaffold these are stored/reported
-configuration only: no mode enables an unimplemented business workflow or write
-connector. Check `/runtime`, which reports `external_write_capabilities: []`.
+`automatic`, defaulting to `observe`. Only the explicit local verification override
+can execute synthetic database effects. No mode enables a production write
+connector. Check `/runtime`, which reports `external_write_capabilities: []` and
+the synthetic connector switch. See [Step 3](step-3-execution.md) for authenticated
+intake, revision-checked cancellation, action recovery and reminder intent semantics.
 
 Each role has its own task queue and `AGENTIC_DISPATCH_PAUSED` or
 `AGENTIC_MIRZA_PAUSED` setting. A paused worker keeps a paused heartbeat but polls
@@ -94,11 +96,11 @@ requires a recent database heartbeat with the expected queue and mode.
 Temporal retains pending workflow history across worker restarts. Probe activities
 use transactional audit keys and lock the projection, preventing duplicate audit
 phases or regression on a delayed activity retry. Correlation IDs follow a probe
-through worker logs and audit rows. Real ticket action/approval contracts are Step 3
-and later work.
+through worker logs and audit rows. Step 3 adds ticket/approval contracts, stable
+action receipts and history replay checks; installed API verification and real
+execution/delivery remain later work.
 
 To deploy workers later, provision separate least-privilege secrets per role and
 the authenticated Temporal/PostgreSQL endpoints. Do not put live keys in workflow
 arguments, logs, environment examples or audit projections. Review workflow
 compatibility before replacing code that owns existing history.
-

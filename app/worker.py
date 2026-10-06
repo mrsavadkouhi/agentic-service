@@ -10,12 +10,15 @@ from temporalio.client import Client
 from temporalio.worker import Worker
 
 from app.activities.runtime_probe import RuntimeProbeActivities
+from app.activities.tickets import TicketActivities
 from app.logging import configure_logging
 from app.settings import Settings, WorkerRole
 from app.storage.database import check_database, make_engine
+from app.storage.ticket_repository import TicketRepository
 from app.storage.workers import heartbeat
 from app.worker_health import marker_path
 from app.workflows.runtime_probe import RuntimeProbeWorkflow
+from app.workflows.tickets import TicketWorkflow
 
 logger = logging.getLogger(__name__)
 
@@ -51,9 +54,13 @@ async def serve(settings: Settings, role: WorkerRole) -> None:
                 settings.temporal_address, namespace=settings.temporal_namespace
             )
             activities = RuntimeProbeActivities(engine, settings, role)
+            tickets = TicketActivities(TicketRepository(engine), settings, role)
             worker = Worker(
                 client, task_queue=settings.task_queue(role),
-                workflows=[RuntimeProbeWorkflow], activities=[activities.record],
+                workflows=[RuntimeProbeWorkflow, TicketWorkflow], activities=[
+                    activities.record, tickets.next_event, tickets.commit, tickets.execute,
+                    tickets.finish, tickets.remind,
+                ],
                 max_concurrent_activities=2, max_concurrent_workflow_tasks=2,
                 max_cached_workflows=20,
             )
@@ -100,4 +107,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

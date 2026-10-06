@@ -15,6 +15,9 @@ dependencies = {file = ["requirements.txt"]}
 [tool.setuptools.packages.find]
 include = ["app*"]
 
+[tool.setuptools.package-data]
+"app.policies" = ["*.json"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests/unit"]
 asyncio_mode = "auto"
@@ -25,4 +28,3 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I"]
-

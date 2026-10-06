@@ -5,10 +5,11 @@ approved Mirza jobs. The confirmed behavior is in [plan.md](plan.md), the
 [decision register](docs/step-1-decisions.md), and the
 [service ownership catalog](docs/service-ownership.md).
 
-Step 2 provides the local runtime: FastAPI, separate dispatch/Mirza Temporal
-workers, PostgreSQL migrations, health checks, structured logs and synthetic
-restart probes. Ticket intake, classification, actual provisioning and Mattermost
-delivery belong to later steps. No production credentials are needed here.
+Steps 2–3 provide the local runtime, authenticated normalized intake, closed ticket
+contracts, deterministic policy gates, durable Temporal execution, action/audit
+records and daily reminder intents. See [Step 3 execution](docs/step-3-execution.md).
+Live connectors, classification, provisioning and Mattermost delivery belong to
+later steps. No production credentials are needed here.
 
 ## Start locally
 
@@ -21,7 +22,7 @@ bash scripts/check_runtime.sh
 docker compose stop
 ```
 
-The generator preserves an existing `.env` and writes new local-only credentials
+The generator preserves existing credentials and adds missing local API tokens
 with mode 0600. `.env` is ignored by Git and the image build. Published ports bind
 only to localhost: API 18080, PostgreSQL 15432 and Temporal 17233. Change the
 corresponding `AGENTIC_*_PORT` settings if those ports are already occupied.
@@ -88,7 +89,12 @@ The API uses FastAPI's
 storage uses the
 [SQLAlchemy psycopg dialect](https://docs.sqlalchemy.org/en/20/dialects/postgresql.html#module-sqlalchemy.dialects.postgresql.psycopg).
 
+For synthetic ticket/action verification, use the explicit `compose.verify.yaml`
+override and `bash scripts/check_tickets.sh`, as described in the Step 3 guide.
+Base Compose never enables the fixture connector. Its API accepts normalized
+production inputs for local observation only after a trusted connector and
+authoritative catalog are supplied in later steps.
+
 See [runtime operations](docs/runtime-operations.md) for configuration, migrations,
 backup/restore and worker deployment. Live integration checks left from discovery
 remain tracked in the decision register and block affected production writes.
-

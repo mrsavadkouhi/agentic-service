@@ -1,0 +1,23 @@
+{
+  "version": "synthetic-step3-v1",
+  "environment": "synthetic",
+  "support_groups": {"Helpdesk": "sd-helpdesk", "DWE": "sd-dwe", "Network": "sd-network", "VOIP": "sd-voip"},
+  "dedicated_templates": {"Mirza Access Request": "template-mirza-access", "Mirza API Key": "template-mirza-key"},
+  "people": [
+    {"person_id": "requester", "email": "requester@example.invalid", "department": "Synthetic Department", "active": true},
+    {"person_id": "owner", "email": "owner@example.invalid", "department": "Synthetic Department", "active": true},
+    {"person_id": "technician", "email": "technician@example.invalid", "department": null, "active": true},
+    {"person_id": "incharge", "email": "incharge@example.invalid", "department": null, "active": true},
+    {"person_id": "new-incharge", "email": "new-incharge@example.invalid", "department": null, "active": true},
+    {"person_id": "approver", "email": "approver@example.invalid", "department": null, "active": true}
+  ],
+  "teams": [
+    {"team_id": "tool-team", "alias": "Synthetic-Tool", "kind": "tool", "models": ["model-a"]},
+    {"team_id": "ui-team", "alias": "Synthetic-UI", "kind": "non_tool", "models": ["model-a"]}
+  ],
+  "keys": [{"key_ref": "key-metadata-1", "owner_email": "owner@example.invalid", "tool_team_id": "tool-team", "expired": true}],
+  "model_ids": ["model-a", "model-b"],
+  "reasoning_levels": ["high"],
+  "department_tool_teams": {"Synthetic Department": "tool-team"},
+  "dwe_incharge_ref": "incharge"
+}

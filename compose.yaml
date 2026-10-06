@@ -25,6 +25,8 @@ x-app: &app
     AGENTIC_DISPATCH_TASK_QUEUE: ${AGENTIC_DISPATCH_TASK_QUEUE:-agentic-dispatch}
     AGENTIC_MIRZA_TASK_QUEUE: ${AGENTIC_MIRZA_TASK_QUEUE:-agentic-mirza}
     AGENTIC_LOG_LEVEL: ${AGENTIC_LOG_LEVEL:-INFO}
+    AGENTIC_INTAKE_TOKEN: ${AGENTIC_INTAKE_TOKEN:?Run scripts/init_local_env.py}
+    AGENTIC_OPERATOR_TOKEN: ${AGENTIC_OPERATOR_TOKEN:?Run scripts/init_local_env.py}
   depends_on:
     migrate:
       condition: service_completed_successfully

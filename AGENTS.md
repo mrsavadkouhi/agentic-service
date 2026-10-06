@@ -6,8 +6,9 @@ decisions; do not add new jobs or reinterpret approval authority without asking.
 
 - Never commit or push without an explicit request.
 - Never commit `.env`, credentials, raw API keys, real tickets or employee data.
-- Default both workflows to observation. Step 2 implements synthetic runtime
-  probes only; it has no ServiceDesk, Mattermost or Mirza write connectors.
+- Default both workflows to observation. Steps 2–3 implement runtime probes and
+  durable ticket contracts with an opt-in synthetic connector. There are no
+  ServiceDesk, Mattermost or Mirza write connectors.
 - Temporal owns workflow state. Keep I/O in activities, and make activities
   idempotent before adding privileged actions. PostgreSQL stores projections/audit.
 - Keep dispatch and Mirza workers on separate task queues. Do not write to Mirza
@@ -25,4 +26,3 @@ decisions; do not add new jobs or reinterpret approval authority without asking.
 - Local resources are limited. Keep Compose caps, build/check sequentially,
   monitor this project's CPU/RAM, and stop its containers after verification.
   Never stop unrelated containers or delete persistent volumes as cleanup.
-

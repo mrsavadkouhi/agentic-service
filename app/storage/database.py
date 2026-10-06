@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.settings import Settings, WorkerRole
 from app.storage.models import RuntimeWorker
 
-SCHEMA_REVISION = "0001_runtime"
+SCHEMA_REVISION = "0002_tickets"
 
 
 def make_engine(settings: Settings) -> Engine:
@@ -37,4 +37,3 @@ def worker_is_ready(engine: Engine, settings: Settings, role: WorkerRole) -> boo
             RuntimeWorker.state == "running",
             RuntimeWorker.last_seen > func.now() - timedelta(seconds=settings.worker_stale_seconds),
         ).limit(1)))
-

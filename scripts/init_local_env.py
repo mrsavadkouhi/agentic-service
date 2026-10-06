@@ -20,13 +20,22 @@ def main() -> None:
     try:
         fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     except FileExistsError:
-        print("Existing .env preserved.")
+        existing = target.read_text()
+        additions = "".join(f"{key}={secrets.token_hex(32)}\n" for key in (
+            "AGENTIC_INTAKE_TOKEN", "AGENTIC_OPERATOR_TOKEN",
+        ) if not any(line.startswith(key + "=") for line in existing.splitlines()))
+        if additions:
+            with target.open("a") as stream:
+                stream.write("\n# Separate local API credentials.\n" + additions)
+            target.chmod(0o600)
+        print("Existing credentials preserved; missing local API credentials added privately.")
         return
     with os.fdopen(fd, "w") as stream:
         stream.write(contents)
+        for key in ("AGENTIC_INTAKE_TOKEN", "AGENTIC_OPERATOR_TOKEN"):
+            stream.write(f"{key}={secrets.token_hex(32)}\n")
     print("Created local-only .env with mode 0600; credential values are not printed.")
 
 
 if __name__ == "__main__":
     main()
-

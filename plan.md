@@ -109,7 +109,7 @@ and content-based Network/VOIP ownership; everything else stays in Helpdesk.
 
 ## Step 1 — Discover integrations and agree on policies
 
-Status: policy baseline and planning handoff ready on 2026-10-06; Step 2 implemented.
+Status: policy baseline and planning handoff ready on 2026-10-06; Steps 2–3 implemented locally.
 Repository discovery is documented. The operator confirmed
 ServiceDesk Plus 15.1 Build 15100, no staging environment, Helpdesk-group intake
 regardless of template/source, ordinary technician preservation, the Mirza DWE
@@ -329,42 +329,59 @@ a fixture workflow survives a worker restart.
 
 ## Step 3 — Establish contracts and reliable execution
 
-- [ ] Normalize helpdesk events into ticket IDs, revision/event IDs, authenticated
+Status: completed locally on 2026-10-06. [Implementation and verification](docs/step-3-execution.md)
+cover authenticated normalized input, deterministic policy gates, durable ticket
+actors, audit/action receipts and reminder intents. The execution connector is
+explicitly synthetic. Installed API verification, authoritative normalization of
+live reads and actual status/grant/notification delivery remain Steps 4 and 6–9.
+This completion does not authorize or claim production fulfillment.
+
+- [x] Normalize helpdesk events into ticket IDs, revision/event IDs, authenticated
       requester IDs, intended recipients, content, template/category IDs, current
       assignment, authoritative process context, parent/child references, and source
       timestamps. Keep unknown process association distinct from a verified
       standalone ticket; related-ticket metadata is read-only.
-- [ ] Define typed group decisions and Mirza requests. Decisions include no-op,
+- [x] Define typed group decisions and Mirza requests. Decisions include no-op,
       correct support group, supported Mirza job, or wait for approval/terms.
       Enforce the eight-operation allowlist and Mirza intake eligibility
       independently of the LLM. Outputs use
       validated catalog IDs; unknown teams, people, models, or grant types cannot
       become executable actions.
-- [ ] Define explicit states such as received, evaluating, awaiting clarification,
+- [x] Define explicit states such as received, evaluating, awaiting clarification,
       awaiting approval, executing, verifying, completed, rejected, manual review,
       and cancelled. Ticket status is mapped separately.
-- [ ] Persist each clarification cycle's hold reason, workflow position, requested
-      fields, selected contact, baseline note/status event IDs, and response evidence.
+- [x] Persist each clarification cycle's hold reason, workflow position, requested
+      fields, selected contact, baseline source revision/sequence, note/status
+      response event IDs, and response evidence.
       Both clarification and approval map to On Hold without conflating their gates.
-- [ ] Deduplicate deliveries and serialize workflows for the same ticket. Preserve
+- [x] Deduplicate deliveries and serialize workflows for the same ticket. Preserve
       new ticket revisions and meaningful changed requests.
-- [ ] Give every logical write a stable operation ID and durable action record.
+- [x] Give every logical write a stable operation ID and durable action record.
       Check downstream state after uncertain results; do not blindly retry key
       generation or other writes without a proven recovery strategy.
-- [ ] Add bounded connector retries, timeout handling, the agreed human-wait policy,
+- [x] Add bounded connector retries, timeout handling, the agreed human-wait policy,
       cancellation, and revalidation when identity, policy, requested scope, or
       ticket state changes. Approval/clarification waits have no age deadline.
-- [ ] Persist a daily 10:00 `Asia/Tehran` reminder schedule for eligible workflows
+- [x] Persist a daily 10:00 `Asia/Tehran` reminder schedule for eligible workflows
       awaiting approval/clarification. Deduplicate by ticket, recipient and local
       calendar date, correlate the active waiting cycle, and skip missed dates
       after recovery. Connector retries do not reset or expire the human wait.
-- [ ] Record policy version, model/prompt version, evidence, decision, approval,
+- [x] Record policy version, model/prompt version, evidence, decision, approval,
       action, and verification result under one correlation ID.
-- [ ] Authenticate intake and operator requests. Treat ticket content and retrieved
+- [x] Authenticate intake and operator requests. Treat ticket content and retrieved
       documents as untrusted input, never as authority to override tool policies.
 
 **Exit condition:** Duplicate events, worker crashes, stale approvals, and changed
 tickets cannot produce unauthorized or duplicate actions in integration tests.
+
+Local exit verified: 43 unit checks; both worker restart/history replay checks;
+duplicate/conflicting delivery IDs; stale approval actor/terms/source revisions;
+clarification note/Open correlation; cancellation; Tehran reminder deduplication
+and delayed-date suppression; one effect after simulated lost response; no write
+with pending newer input or an uncertain result without a receipt; history rollover
+after 102 revisions; existing runtime probes; and no Alembic schema drift.
+These synthetic checks do not prove production connector idempotency or live
+ServiceDesk approval/history semantics. Preserve those gates in later steps.
 
 ## Step 4 — Implement read-only connectors
 

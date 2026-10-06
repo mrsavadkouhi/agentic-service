@@ -1,0 +1,20 @@
+# Local synthetic verification only. No production connector or credentials.
+services:
+  api:
+    environment:
+      AGENTIC_ENABLE_FIXTURE_EXECUTION: "true"
+      AGENTIC_FIXTURE_LOSE_RESPONSE_ONCE: "true"
+      AGENTIC_DISPATCH_MODE: automatic
+      AGENTIC_MIRZA_MODE: automatic
+  dispatch-worker:
+    environment:
+      AGENTIC_ENABLE_FIXTURE_EXECUTION: "true"
+      AGENTIC_FIXTURE_LOSE_RESPONSE_ONCE: "true"
+      AGENTIC_DISPATCH_MODE: automatic
+      AGENTIC_MIRZA_MODE: automatic
+  mirza-worker:
+    environment:
+      AGENTIC_ENABLE_FIXTURE_EXECUTION: "true"
+      AGENTIC_FIXTURE_LOSE_RESPONSE_ONCE: "true"
+      AGENTIC_DISPATCH_MODE: automatic
+      AGENTIC_MIRZA_MODE: automatic

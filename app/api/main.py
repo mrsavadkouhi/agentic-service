@@ -5,14 +5,17 @@ from datetime import timedelta
 from uuid import UUID, uuid4
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from temporalio.api.workflowservice.v1 import DescribeNamespaceRequest
 from temporalio.client import Client
 
 from app import __version__
+from app.api.intake import configured_catalog, deliver_notifications, router
 from app.logging import configure_logging, correlation_id
 from app.settings import Settings, WorkerRole
 from app.storage.database import check_database, make_engine, worker_is_ready
+from app.storage.ticket_repository import TicketRepository
 
 logger = logging.getLogger(__name__)
 
@@ -27,12 +30,34 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.temporal = await Client.connect(
             config.temporal_address, namespace=config.temporal_namespace, lazy=True
         )
+        app.state.tickets = TicketRepository(app.state.engine)
+        delivery = None
         try:
+            catalog = configured_catalog(config)
+            if catalog:
+                await asyncio.to_thread(app.state.tickets.seed_catalog, catalog)
+            if config.intake_token or config.operator_token:
+                delivery = asyncio.create_task(deliver_notifications(
+                    app.state.tickets, app.state.temporal, config,
+                ))
             yield
         finally:
+            if delivery:
+                delivery.cancel()
+                await asyncio.gather(delivery, return_exceptions=True)
             app.state.engine.dispose()
 
     app = FastAPI(title="ICT workflow runtime", version=__version__, lifespan=lifespan)
+    app.include_router(router(config))
+
+    @app.exception_handler(RequestValidationError)
+    async def invalid_input(request, exc):
+        return JSONResponse({"detail": "Invalid request"}, status_code=422)
+
+    @app.exception_handler(Exception)
+    async def unavailable(request, exc):
+        logger.error("Request unavailable", extra={"error_type": type(exc).__name__})
+        return JSONResponse({"detail": "Service unavailable"}, status_code=503)
 
     @app.middleware("http")
     async def request_context(request: Request, call_next):
@@ -108,6 +133,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "business_workflows_implemented": False,
             "external_write_capabilities": [],
             "registered_workflow": "RuntimeProbeWorkflow",
+            "ticket_contracts_implemented": True,
+            "registered_workflows": ["RuntimeProbeWorkflow", "TicketWorkflow"],
+            "synthetic_connector_enabled": config.enable_fixture_execution,
         }
 
     return app
