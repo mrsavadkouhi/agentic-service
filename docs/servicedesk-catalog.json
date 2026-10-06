@@ -1,0 +1,121 @@
+{
+  "catalog_version": "sdp15100-observed-20261006",
+  "observed_date": "2026-10-06",
+  "product_version_operator_confirmed": "15.1 Build 15100",
+  "purpose": "Read-only installed catalog evidence; not an executable approval catalog",
+  "support_groups": {
+    "Helpdesk": {"id": "301", "installed_name": "HelpDesk"},
+    "Network": {"id": "2", "installed_name": "Network"},
+    "DWE": {"id": "2101", "installed_name": "DWE"},
+    "VOIP": {"id": "901", "installed_name": "VOIP"}
+  },
+  "incharge_group_source": {
+    "endpoint": "/api/v3/support_groups/{group_id}",
+    "field": "role_associations[].group_role.display_name",
+    "role_marker": "$GROUP_INCHARGE$",
+    "user_field": "role_associations[].user",
+    "dwe_unique_role_and_email_verified": true
+  },
+  "mirza_templates": {
+    "Mirza API Key": "11401",
+    "Mirza Access Request": "11702"
+  },
+  "statuses": {"Open": "2", "Onhold": "3", "Resolved": "4", "Closed": "1", "Cancelled": "7"},
+  "lifecycle_template_candidates": [
+    {"id": "3601", "name": "Onboarding"},
+    {"id": "2701", "name": "Offboarding"},
+    {"id": "6601", "name": "Internal Transfer"},
+    {"id": "7501", "name": "Onboarding - Call Center Agents"},
+    {"id": "7802", "name": "Internal Transfer- Call Center Agents"},
+    {"id": "12301", "name": "HR Onboarding | Offboarding Access Request"},
+    {"id": "4501", "name": "offboarding-AccessRemoval"},
+    {"id": "5101", "name": "Onboarding-SysAdmins-Info"},
+    {"id": "4502", "name": "OnboardingPreparation"}
+  ],
+  "lifecycle_relationship_contract_verified": false,
+  "lifecycle_root_exclusions": {
+    "3601": "onboarding",
+    "7501": "onboarding",
+    "2701": "offboarding",
+    "6601": "internal_transfer",
+    "7802": "internal_transfer"
+  },
+  "lifecycle_relationship_sources": {
+    "child_producer": {
+      "operator_confirmed": "n8n",
+      "manual_creation_or_linking_operator_confirmed": false,
+      "installed_workflow_store": "SQLite",
+      "installed_active_workflows": 36,
+      "active_workflows_missing_published_definition": 0,
+      "published_graphs_differing_from_drafts": 0,
+      "recognized_child_creation_workflows": 3,
+      "recognized_child_creation_nodes": 12,
+      "distinct_literal_creation_credentials": 1,
+      "installed_creation_before_persistence_paths_observed": true,
+      "creation_credentials_used_or_exported": false,
+      "dedicated_creation_account_operator_confirmed": true,
+      "runtime_creation_account_ids_configured": false,
+      "complete_historical_producer_coverage_verified": false,
+      "standalone_absence_verified": false
+    },
+    "onboarding_children": {
+      "field": "udf_fields.udf_sline_4217",
+      "format": "pipe-separated key:value pairs",
+      "child_id_keys": ["office_id", "ex_id", "helpdesk_id", "viop_id"],
+      "voip_id_alias": "voip_id",
+      "confirmed_against_operator_examples": true
+    },
+    "onboarding_database": {
+      "source_export": "n8n/flows/onboarding/v2/created-users[POST] v2.json",
+      "ssh_host": "n8n",
+      "postgres_container": "n8n-postgres-1",
+      "database": "n8mdb",
+      "table": "public.onboarding_process",
+      "parent_column": "automation_id",
+      "child_columns": ["office_id", "ex_id", "helpdesk_id", "voip_id"],
+      "column_type": "bigint",
+      "installed_read_verified": true,
+      "observed_process_rows": 120,
+      "supplied_parent_and_child_sets_match": true,
+      "invalid_or_zero_ticket_references": 0,
+      "hr_id_nonempty_rows": 0,
+      "hr_id_relation_semantics_verified": false,
+      "runtime_connection_configured": false
+    },
+    "call_center_root_bridge": {
+      "to_onboarding_root": "udf_fields.udf_sline_6601",
+      "to_call_center_root": "udf_fields.udf_sline_10449",
+      "observed_reciprocal": true,
+      "normalized": true
+    },
+    "offboarding_children": {
+      "source": "n8n Postgres account",
+      "ssh_host": "n8n",
+      "postgres_container": "n8n-postgres-1",
+      "database": "n8mdb",
+      "table": "public.offboarding_process",
+      "parent_column": "automation_id",
+      "child_columns": ["helpdesk_id", "sysadmin_id", "network_id", "devflow_id", "foundation_id", "voip_id", "platform_id", "di_id"],
+      "installed_read_verified": true,
+      "observed_process_rows": 489,
+      "additional_child_column_nonempty_rows": {"foundation_id": 214, "voip_id": 0, "platform_id": 216, "di_id": 470},
+      "invalid_nonempty_ticket_references": 0,
+      "exported_child_creation_before_mapping_persistence": true,
+      "installed_creation_persistence_order_verified": false,
+      "supplied_parent_and_three_children_match": true,
+      "connection_credential_exported": false,
+      "runtime_connection_configured": false
+    },
+    "internal_transfer_has_children_operator_confirmed": false
+  },
+  "history_source_sequence_verified": false,
+  "mirza_approved_stage_actor_time_observations_verified": true,
+  "mirza_approval_read_ticket_correlation_verified": true,
+  "approval_terms_binding_verified": false,
+  "approval_edit_behavior": {
+    "automatic_reset": false,
+    "operator_confirmed": true,
+    "manual_restart_capability_verified": false
+  },
+  "counts": {"support_groups": 32, "request_templates": 134, "statuses": 7, "categories": 79}
+}

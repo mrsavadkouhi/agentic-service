@@ -385,28 +385,103 @@ ServiceDesk approval/history semantics. Preserve those gates in later steps.
 
 ## Step 4 — Implement read-only connectors
 
+Status: in progress on 2026-10-06. The read-only foundation, operator context
+endpoint and local connector tests are implemented; installed Mirza and basic
+ServiceDesk normalization pass. [Implementation and remaining verification](docs/step-4-read-connectors.md)
+record the ServiceDesk approval-term/history-order/process gates, verified AD
+identity/absence/auth-denial reads and verified Mattermost bot/DWE lookup. No external
+writes or production activation are implemented. The complete-context exit
+condition remains open; do not advance to Step 5 as a completed Step 4 handoff.
+
+The operator's lifecycle examples now verify onboarding's packed child-ID field,
+the reciprocal call-center/onboarding root bridge, and reverse child lookup.
+Installed lifecycle root IDs identify exclusions; internal transfer has no
+children. Offboarding's existing n8n nodes read relationships from PostgreSQL's
+`public.offboarding_process`, rather than native ServiceDesk links. The exports
+contain the query and a credential reference, without connection details or
+saved results. Read-only inspection on SSH host `n8n` verifies the installed
+`n8mdb` table and all three supplied offboarding children. An optional SELECT-only
+reader now normalizes parent/child IDs and cross-checks parent templates against
+ServiceDesk. Its runtime connection remains unconfigured; no database credential
+was exported. Complete standalone membership checks remain unresolved.
+The installed table has eight child-ID columns; the reader now also includes
+Foundation, VOIP, Platform and Data Infrastructure relationships. The refactored
+export creates children before persisting their IDs, so an absent mapping cannot
+prove that a newly observed ticket is standalone. Read-only inspection of n8n's
+SQLite store now observes this ordering in three active published workflow graphs,
+covering 12 recognized child-creation nodes using one creation credential. No
+credential was used or exported. Failed-persistence recovery and complete producer
+coverage remain unverified, so unmatched tickets still cannot be processed.
+The older `n8n` repository also reveals `public.onboarding_process`: installed
+ID-only SELECTs match both supplied parents and all eight onboarding children.
+An optional SELECT-only index now provides direct child lookup before the packed
+ServiceDesk field is refreshed, preserving the existing legacy/bridge fallbacks.
+Its runtime connection is unconfigured; unused `hr_id` semantics remain unresolved.
+
+The supplied Mattermost token verifies the active `servicedesk_agent` bot and
+resolves the dynamic DWE in-charge by exact email. A sampled requester has no
+Mattermost account and remains ineligible for delivery; no fallback recipient is
+chosen. The token remains in memory and runtime secret configuration is pending.
+The operator applied the Mirza packaging, eligibility and LDAP empty-search
+corrections; installed unique/eligible, absent-user and auth-denial reads pass.
+The sampled real AD department resolves to an existing approved Tool destination.
+Current Mirza reads also verify all 30 approved map destinations exist as Tool
+teams; this does not prove coverage of every real AD department. Mirza changes
+remain operator-applied; do not deploy Mirza from this task.
+
+The context reader separately rechecks notes, history, approvals (including a
+digest of template configuration) and relationships, rejecting changed observations
+even when the ticket revision remains unchanged. All 188 local unit checks pass.
+A new installed authority probe normalizes samples from both Mirza templates;
+the initial samples were pending/missing stages. A bounded metadata scan then
+finds approved examples in both templates, verifying required/current stages,
+acting-user IDs and action times. History order/current-term binding remain
+unverified. Native ticket creation actors/times are exposed for observation.
+The operator confirms onboarding/offboarding children are n8n-created through a
+dedicated ServiceDesk technician account. An optional, API-only creator-ID guard
+now flags missing mappings as incomplete without treating creators as proof of
+process membership or other creators as standalone. Runtime IDs remain unset.
+The operator confirms that edits do not reset approvals and is unsure about
+manual restart of the existing steps. Approval reads now carry observed ticket
+content/revision digests; the context rejects mismatched observations without
+claiming that those digests describe what the approver approved. Current-term
+approval binding and the installed renewal mechanism remain unverified.
+The extended read-only probe passes on approved examples from both templates,
+verifying stable ticket/approval observations and matching observed digests.
+These are observation checks, not authorization of edited execution terms.
+
 - [ ] Read helpdesk tickets, revisions, support groups, templates, existing approvals,
       status transitions with actor identity and ordering for the DWE handoff,
       ticket notes with author identity and ordering for clarification,
       assignments, lifecycle process/template metadata and parent/child relationships,
       and relevant service metadata with complete pagination.
-- [ ] Resolve requester and recipient identity through the authoritative directory;
-      verify employee status and department rather than trusting a typed email.
-- [ ] Read Mirza users, teams, virtual-key metadata, served models, budgets, and
+- [x] Resolve requester and recipient identity through the authoritative directory;
+      verify one exact email match, enabled/unexpired account status and department
+      rather than trusting a typed email. The operator confirms that no additional
+      employee attribute or AD group is required. Installed positive/absent/auth-denial
+      checks pass; disabled, expired and ambiguous cases have deterministic fixtures.
+- [x] Read Mirza users, teams, virtual-key metadata, served models, budgets, and
       effective reasoning grants. Never return raw keys to the LLM.
-- [ ] Reuse or extend Mirza's AD department lookup where suitable; department lookup
+- [x] Reuse or extend Mirza's AD department lookup where suitable; department lookup
       alone is not proof of employee eligibility or authenticated identity.
-- [ ] Resolve new-key owners through the versioned department-to-Tool-team map
+- [x] Resolve new-key owners through the versioned department-to-Tool-team map
       and verify the mapped team exists and is a Tool team. Stop on missing,
       ambiguous, invalid, or conflicting terms. Read existing keys' current team
       directly for key updates; mapping does not change UI memberships.
 - [ ] For missing mapping/destination, gather an explicit on-the-fly mapping
       through the established human clarification flow; read enough catalog
       data to distinguish absent teams from an unavailable lookup.
-- [ ] Distinguish unavailable data from an empty result and fail closed for new
+- [x] Distinguish unavailable data from an empty result and fail closed for new
       permission grants when identity, approval, or policy cannot be verified.
 - [ ] Build connector fixtures/local contract tests, then inspect installed API
       responses through production read-only access with secret-safe handling.
+
+Completed local slices include paged candidate ServiceDesk reads and assignment/
+note digests, the AD identity bridge and account checks, Mattermost lookup fixtures,
+versioned Tool-team resolution and ticket-scoped mapping helpers.
+Complete ServiceDesk authority/process evidence and runtime source configuration
+remain required before the broader checklist items can be marked complete. Negative source spend and
+nonstandard owner IDs are preserved for reads without relaxing execution contracts.
 
 **Exit condition:** A ticket produces a complete, traceable context snapshot with
 no external writes and no secrets in logs or inference inputs.
@@ -506,6 +581,9 @@ and concurrent-edit scenarios.
       from ServiceDesk Plus. Fulfill after its required approvals are complete;
       pending, rejected, missing, or unavailable evidence cannot authorize a grant.
       An LLM recommendation or free-text approval claim is not approval evidence.
+      Edits retain old approvals: verify approval of resulting terms, and pause
+      materially changed requests pending renewed review. Do not invent an approval
+      reset API or a substitute approver while the renewal mechanism is unverified.
 - [ ] For other Helpdesk templates, persist the supported request's terms and
       handoff identity, then move the ticket to DWE and set On Hold. The group
       move may clear its technician, including an existing human assignment;

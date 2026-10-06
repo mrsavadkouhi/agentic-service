@@ -8,8 +8,12 @@ approved Mirza jobs. The confirmed behavior is in [plan.md](plan.md), the
 Steps 2–3 provide the local runtime, authenticated normalized intake, closed ticket
 contracts, deterministic policy gates, durable Temporal execution, action/audit
 records and daily reminder intents. See [Step 3 execution](docs/step-3-execution.md).
-Live connectors, classification, provisioning and Mattermost delivery belong to
-later steps. No production credentials are needed here.
+Step 4 adds optional read-only connectors and an operator-only context endpoint;
+installed Mirza and basic ServiceDesk reads are verified. Approval/process
+authority and other live contracts remain pending. See
+[read-only integration context](docs/step-4-read-connectors.md).
+Classification, provisioning and Mattermost delivery belong to later steps.
+Local startup needs no production credentials.
 
 ## Start locally
 

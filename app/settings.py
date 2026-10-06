@@ -1,5 +1,6 @@
 from enum import StrEnum
 from pathlib import Path
+from typing import Annotated, Literal
 
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -40,6 +41,24 @@ class Settings(BaseSettings):
     catalog_file: Path | None = None
     enable_fixture_execution: bool = False
     fixture_lose_response_once: bool = False
+    servicedesk_url: str | None = None
+    servicedesk_read_token: SecretStr | None = None
+    servicedesk_lifecycle_creator_ids: tuple[
+        Annotated[str, Field(strict=True, pattern=r"^[1-9][0-9]{0,29}$")], ...
+    ] = Field(default=(), max_length=20, repr=False)
+    offboarding_database_url: SecretStr | None = None
+    onboarding_database_url: SecretStr | None = None
+    directory_url: str | None = None
+    directory_read_token: SecretStr | None = None
+    mirza_url: str | None = None
+    mirza_read_token: SecretStr | None = None
+    mattermost_url: str | None = None
+    mattermost_read_token: SecretStr | None = None
+    mattermost_bot_username: str = "servicedesk_agent"
+    department_map_file: Path | None = None
+    mirza_reasoning_default: Literal["none", "minimal", "low", "medium", "high", "xhigh"] = "medium"
+    connector_allow_http: bool = False
+    connector_timeout_seconds: float = Field(default=8, gt=0, le=15)
 
     @model_validator(mode="after")
     def validate_boundaries(self) -> "Settings":
@@ -56,6 +75,10 @@ class Settings(BaseSettings):
                 raise ValueError("API credentials require at least 32 characters")
         if self.fixture_lose_response_once and not self.enable_fixture_execution:
             raise ValueError("Fault injection requires the synthetic connector")
+        if len(set(self.servicedesk_lifecycle_creator_ids)) != len(
+            self.servicedesk_lifecycle_creator_ids
+        ):
+            raise ValueError("Lifecycle creator IDs must be unique")
         return self
 
     def mode(self, role: WorkerRole) -> OperationMode:

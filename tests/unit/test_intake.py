@@ -77,6 +77,24 @@ def test_fixture_switch_does_not_accept_production_catalog(tmp_path):
         config(intake_token="i" * 32, operator_token="i" * 32)
 
 
+def test_read_context_requires_operator_and_never_enrolls_workflow(application):
+    settings = config(intake_token="i" * 32, operator_token="o" * 32)
+    intake = {"Authorization": "Bearer " + "i" * 32}
+    operator = {"Authorization": "Bearer " + "o" * 32}
+    with TestClient(main.create_app(settings)) as client:
+        assert client.get("/v1/contexts/1", headers=intake).status_code == 401
+        response = client.get("/v1/contexts/1", headers=operator)
+        assert response.status_code == 200
+        assert not response.json()["grant_context_verified"]
+        assert response.json()["ticket"]["status"] == "unavailable"
+        response = client.get(
+            "/v1/contexts/1", headers=operator, params={"key_ref": "sk-private-key"}
+        )
+        assert response.status_code == 422 and "sk-private-key" not in response.text
+        assert client.get("/v1/contexts/invalid", headers=operator).status_code == 422
+    application.accept.assert_not_called()
+
+
 async def test_outbox_ack_only_after_temporal_accepts():
     repository = MagicMock()
     repository.pending_notifications.return_value = [

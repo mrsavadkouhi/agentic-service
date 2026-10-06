@@ -8,6 +8,8 @@ COPY requirements.lock ./
 RUN pip install --no-cache-dir --only-binary=:all: -r requirements.lock \
     && useradd --uid 10001 --create-home agentic
 COPY app ./app
+COPY docs/department-tool-team-map.json ./docs/department-tool-team-map.json
+COPY docs/servicedesk-catalog.json ./docs/servicedesk-catalog.json
 COPY migrations ./migrations
 COPY alembic.ini ./
 COPY scripts/verify_runtime.py ./scripts/verify_runtime.py

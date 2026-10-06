@@ -10,9 +10,13 @@ This register does not introduce another approval process for development.
 |---|---|---|
 | INT-01 | ServiceDesk Plus 15.1 Build 15100 | Verify installed contracts through read-only inspection |
 | INT-02 | No staging environment | Local fixtures/mocks, production observation, then scoped activation |
+| MIR-DEPLOYMENT | The operator applies Mirza changes personally | Prepare reviewed local files and commands; do not deploy Mirza. Resume read-only verification after operator rollout |
 | GROUP-SCOPE | Helpdesk, Network, DWE, VOIP | Support-group destinations use verified live IDs |
 | GROUP-OWNERSHIP | DWE owns the named platforms and system administration; Network and VOIP use their related subjects/descriptions | Use the [service catalog](service-ownership.md); everything else stays in Helpdesk; live IDs remain pending |
 | PROCESS-EXCLUSION | Leave onboarding, offboarding and internal-transfer process tickets and their child tickets alone | Exclude before routing or Mirza enrollment; preserve assignments, relationships and ticket state |
+| PROCESS-TRANSFER-CHILDREN | Internal transfer has no child tickets | Exclude its root; do not invent child relationships. Confirmed 2026-10-06 |
+| PROCESS-CHILD-PRODUCER | Onboarding/offboarding child tickets are created by n8n | Do not assume manually created/linked children. Missing automation mappings remain unknown because creation precedes persistence. Confirmed 2026-10-06 |
+| PROCESS-PRODUCER-ACCOUNT | n8n uses a dedicated ServiceDesk technician account for child creation | A verified configured creator ID may flag an unregistered automation ticket for review. Creator identity alone neither proves a parent relationship nor establishes that another ticket is standalone. Confirmed 2026-10-06 |
 | GROUP-INTAKE | Any request currently in Helpdesk, from email or UI, regardless of template | Listen regardless of assignment; apply a separate unassigned-only group-write gate |
 | GROUP-PRESERVE | Preserve technician assignments for ordinary group correction | Keep the exact technician value; assigned ordinary tickets receive no group write |
 | GROUP-SIDE-EFFECT | Changing the support group clears the technician | Ordinary correction is unassigned-only; the approved Mirza DWE handoff is an exception |
@@ -20,6 +24,7 @@ This register does not introduce another approval process for development.
 | INNER-TEMPLATES | Ordinary template A/template B mismatch outside Helpdesk | Do nothing, including mismatches across specialized support groups |
 | NO-TEMPLATE-WRITES | Template changes are not possible | Always preserve the submitted template; no template-write capability |
 | MIR-APPROVAL | Dedicated Mirza templates use their existing required ServiceDesk approvals | Fulfill after final required approval; no extra sign-off or self-approval |
+| MIR-APPROVAL-EDIT | Editing an approved Mirza ticket does not automatically reset its approvals | An Approved status cannot establish approval of current terms. Preserve the existing renewed-review requirement for materially changed terms; manual restart capability remains unverified. Confirmed 2026-10-06 |
 | MIR-FALLBACK-APPROVAL | Other Helpdesk templates have no Mirza approval steps; move supported requests to DWE, put On Hold, notify the DWE person in charge with the ticket link | Fulfill only after that authorized person changes the held ticket to Open; preserve the original template |
 | MIR-INCHARGE | Each ServiceDesk support group has `incharge_group`; resolve the DWE person in charge dynamically from that group's value | Read the DWE support-group field for notification recipient and approval actor; do not hardcode a person's email |
 | MIR-INCHARGE-SNAPSHOT | Keep the originally resolved person for that request even if `incharge_group` later changes | Persist the approver at handoff; notification retries and approval checks use that identity; new requests resolve the current field |
@@ -27,6 +32,8 @@ This register does not introduce another approval process for development.
 | MIR-TEMPLATES | Mirza Access Request; Mirza API Key; other templates from Helpdesk may be used | Dedicated templates qualify; start fallback workflows only in Helpdesk, then continue their tracked DWE approval handoff |
 | MIR-JOBS | Create API key; increase reasoning for API key; increase reasoning for team; add model access for team; add user to a team for model access; increase person budget; increase API-key budget; increase team budget | Explicit eight-operation allowlist; all other requested Mirza matters are no-ops |
 | MIR-PERSON | Person means email for LibreChat UI access and budget | Access through additive membership in one or many non-Tool teams |
+| MIR-AD-ELIGIBILITY | Every AD account with a unique email that is enabled and unexpired qualifies | Verify one exact directory match and both account flags; require no additional employee attribute or AD group. Confirmed 2026-10-06 |
+| MSG-BOT | Mattermost bot username is `servicedesk_agent` | Verify the token's active bot identity and exact recipient email; keep the token out of repository files. Bot and DWE in-charge lookups verified 2026-10-06 |
 | MIR-KEY | API key is owned by a person email and has exactly one Tool team | Verify owner and one Tool-team ID; do not inherit UI/non-Tool access |
 | MIR-EXISTING-KEY | If a create-key request's owner already has a key in the mapped Tool team, including an expired key, put On Hold and ask | Use the established technician/original DWE in-charge clarification flow; do not automatically create another key |
 | MIR-NO-ADDITIONAL-KEY | If that technician/in-charge confirms another key is unnecessary, resolve the ticket with the explanation | Verify the clarification note/Open response, create no key, send required user/staff completion notifications, then set Resolved |
@@ -173,6 +180,15 @@ not replace dedicated-template approvals or the original DWE handoff approver.
 The same Open event can satisfy both checks only if the actor is also that
 authorized approver and the exact resulting terms have valid approval evidence.
 Materially changed terms require renewed review through the applicable path.
+The operator confirms that editing an approved ticket does not automatically
+reset ServiceDesk approvals. A still-approved stage is therefore not evidence
+that its approver reviewed an edited recipient, operation, model, reasoning level
+or budget. Correlate observed ticket content/revisions with approval reads, and
+keep those observation digests distinct from approved execution terms. Manual
+restart of existing approval steps is not confirmed; the operator is unsure.
+Do not invent a reset operation or substitute clarification/Open for required
+dedicated-template approval. Without approval evidence for the resulting terms,
+fulfillment remains paused under the existing approval gate.
 Existing eight-job boundaries, identity verification, and no-op rules for clearly
 unsupported/ineligible requests still apply.
 
@@ -350,7 +366,7 @@ team IDs are distinct, even when their display names happen to match.
 | INT-04 | Webhooks, update ordering, pagination, and revision semantics | Reliable production intake |
 | GROUP-01 | Canonical live Helpdesk group ID | Intake eligibility is current group only; no Helpdesk template allowlist needed |
 | GROUP-02 | Live support-group IDs; all four ownership rules are confirmed in the service catalog | Correct destination |
-| GROUP-04 | Live lifecycle process/template IDs and parent/child relationship metadata | Exclude onboarding/offboarding/internal-transfer process tickets and children |
+| GROUP-04 | Lifecycle roots, onboarding packed child IDs/reciprocal call-center bridge, and offboarding's `public.offboarding_process` source are verified; runtime database connection and complete absence checks remain pending | Exclude verified process members; unresolved membership remains blocked |
 | GROUP-03 | Verify null remains null, automatic assignment is absent, and concurrent assignments are protected | Clearing behavior is operator-confirmed; group-only writes restricted to unassigned tickets |
 | MIR-01 | Resolve authoritative emails, key owner/one Tool team, and precise Mirza team IDs/kinds | Enforce confirmed UI/API/team scope; support groups remain separate |
 | MIR-02 | Fields/defaults for models, reasoning level, budget target, absolute/delta amount, duration | Executable approved operation |
@@ -359,7 +375,7 @@ team IDs are distinct, even when their display names happen to match.
 | MIR-05 | Verify live AD values and Tool-team creation contracts | All 30 mapped entries are operator-verified; 42 unspecified entries use ticket-scoped clarification and explicit team creation when absent |
 | ID-01 | Requester identity/delegation and operator authentication | Privileged execution |
 | SEC-01 | Verify encrypted key storage and intended-recipient identity for direct Mattermost DM | Direct key delivery confirmed; secrets confined to privileged connector/storage and authorized user DM |
-| MSG-01 | Mattermost bot identity/configuration, recipient lookup and DM API, user-result/key-delivery rendering and reconciliation | Review, clarification and staff-completion templates, direct user key DM, and completion contact priority confirmed |
+| MSG-01 | Bot identity and DWE recipient lookup are verified; runtime secret configuration, DM API, user-result/key-delivery rendering and reconciliation remain pending | Review, clarification and staff-completion templates, direct user key DM, and completion contact priority confirmed |
 | MIR-06 | Verify API exposure/format of ServiceDesk support-group `incharge_group`, DWE lookup, and ServiceDesk/Mattermost identity resolution | Resolve dynamically for each new handoff, preserve its original approver; source and change policy confirmed |
 | MIR-CLARIFY-01 | Verify note author/history APIs and resume event correlation | Supported Mirza On Hold/note/Open clarification; contact selection and message wording confirmed |
 | OPS-01 | Durable reminder scheduling/deduplication and live dedicated-approval recipient lookup; indefinite waiting and daily 10:00 Asia/Tehran reminders are confirmed | Durable handling of held requests |

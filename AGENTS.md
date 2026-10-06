@@ -9,6 +9,9 @@ decisions; do not add new jobs or reinterpret approval authority without asking.
 - Default both workflows to observation. Steps 2–3 implement runtime probes and
   durable ticket contracts with an opt-in synthetic connector. There are no
   ServiceDesk, Mattermost or Mirza write connectors.
+- Step 4 adds optional operator-only read connectors. Its installed authority
+  gaps are tracked in `docs/step-4-read-connectors.md`. Keep incomplete context
+  distinct from verified approval and never feed it into executable intake as proof.
 - Temporal owns workflow state. Keep I/O in activities, and make activities
   idempotent before adding privileged actions. PostgreSQL stores projections/audit.
 - Keep dispatch and Mirza workers on separate task queues. Do not write to Mirza

@@ -1,17 +1,21 @@
 import asyncio
 import logging
+import re
 from contextlib import asynccontextmanager
 from datetime import timedelta
 from uuid import UUID, uuid4
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from pydantic import TypeAdapter
 from temporalio.api.workflowservice.v1 import DescribeNamespaceRequest
 from temporalio.client import Client
 
 from app import __version__
-from app.api.intake import configured_catalog, deliver_notifications, router
+from app.api.intake import authorize, configured_catalog, deliver_notifications, router
+from app.connectors.factory import Connectors
+from app.contracts.tickets import Email
 from app.logging import configure_logging, correlation_id
 from app.settings import Settings, WorkerRole
 from app.storage.database import check_database, make_engine, worker_is_ready
@@ -32,23 +36,53 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         app.state.tickets = TicketRepository(app.state.engine)
         delivery = None
+        connectors = None
         try:
+            connectors = Connectors(config)
+            app.state.connectors = connectors
             catalog = configured_catalog(config)
             if catalog:
                 await asyncio.to_thread(app.state.tickets.seed_catalog, catalog)
             if config.intake_token or config.operator_token:
-                delivery = asyncio.create_task(deliver_notifications(
-                    app.state.tickets, app.state.temporal, config,
-                ))
+                delivery = asyncio.create_task(
+                    deliver_notifications(
+                        app.state.tickets,
+                        app.state.temporal,
+                        config,
+                    )
+                )
             yield
         finally:
             if delivery:
                 delivery.cancel()
                 await asyncio.gather(delivery, return_exceptions=True)
+            if connectors:
+                await connectors.close()
             app.state.engine.dispose()
 
     app = FastAPI(title="ICT workflow runtime", version=__version__, lifespan=lifespan)
     app.include_router(router(config))
+
+    @app.get("/v1/contexts/{ticket_id}")
+    async def context(
+        ticket_id: str,
+        request: Request,
+        recipient_email: str | None = None,
+        key_ref: str | None = None,
+    ):
+        authorize(request, config.operator_token)
+        if not re.fullmatch(r"[0-9]{1,30}", ticket_id):
+            raise HTTPException(422, "Invalid ticket reference")
+        if key_ref is not None and not re.fullmatch(r"litellm-key-[a-f0-9]{64}", key_ref):
+            raise HTTPException(422, "Invalid key reference")
+        if recipient_email is not None:
+            try:
+                recipient_email = TypeAdapter(Email).validate_python(
+                    recipient_email.strip().casefold()
+                )
+            except ValueError:
+                raise HTTPException(422, "Invalid recipient reference") from None
+        return await request.app.state.connectors.reader.read(ticket_id, recipient_email, key_ref)
 
     @app.exception_handler(RequestValidationError)
     async def invalid_input(request, exc):
@@ -113,9 +147,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                     dependencies[f"worker_{role.value}"] = "ready" if present else "unavailable"
                 except Exception as exc:
                     dependencies[f"worker_{role.value}"] = "unavailable"
-                    logger.warning("Worker readiness unavailable", extra={
-                        "worker_role": role.value, "error_type": type(exc).__name__,
-                    })
+                    logger.warning(
+                        "Worker readiness unavailable",
+                        extra={
+                            "worker_role": role.value,
+                            "error_type": type(exc).__name__,
+                        },
+                    )
         healthy = all(value in {"ready", "paused"} for value in dependencies.values())
         return JSONResponse(
             {"status": "ready" if healthy else "not_ready", "dependencies": dependencies},
@@ -136,6 +174,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "ticket_contracts_implemented": True,
             "registered_workflows": ["RuntimeProbeWorkflow", "TicketWorkflow"],
             "synthetic_connector_enabled": config.enable_fixture_execution,
+            "read_only_connectors_implemented": True,
         }
 
     return app
