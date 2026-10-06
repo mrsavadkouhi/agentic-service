@@ -1,0 +1,21 @@
+{
+  "status": "complete",
+  "source_team_removed": true,
+  "target_team_alias": "Cloud-Tool",
+  "target_team_id": "f4bcf6d8-17b5-4c10-82a3-20a225ccf18d",
+  "keys_moved": 1,
+  "members_added": 1,
+  "target_key_count": 12,
+  "target_member_count": 13,
+  "key_owner_models_budget_expiry_metadata_preserved": true,
+  "owner_non_tool_memberships_preserved": true,
+  "target_max_budget": 220.0,
+  "target_budget_duration": "1d",
+  "target_models_and_reasoning_preserved": true,
+  "steps": [
+    "Added source-only member to Cloud-Tool",
+    "Moved one existing key to Cloud-Tool",
+    "Deleted empty TapsiCloud-Tool team"
+  ],
+  "private_backup_path": "/home/ubuntu/.local/state/mirza-team-merges/cloud-merge-9a07187633fb4dd784ed48609a4788f4/before.json"
+}

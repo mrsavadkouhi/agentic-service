@@ -1,0 +1,551 @@
+{
+  "tool_suffix": "-Tool",
+  "list_query_parameters": [
+    "user_id",
+    "organization_id"
+  ],
+  "teams": [
+    {
+      "team_id": "9b4e075c-0e14-4316-b86a-47b8103c4f96",
+      "team_alias": "Admin-Tool",
+      "kind": "tool"
+    },
+    {
+      "team_id": "9b565e15-4dab-4c45-977f-38246d8f6ebb",
+      "team_alias": "Cab-Tool",
+      "kind": "tool"
+    },
+    {
+      "team_id": "f4bcf6d8-17b5-4c10-82a3-20a225ccf18d",
+      "team_alias": "Cloud-Tool",
+      "kind": "tool"
+    },
+    {
+      "team_id": "7f1f23bf-5837-4622-b740-85cbec9636b0",
+      "team_alias": "Conf - KB",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "94c3f856-643e-48dc-b341-45df2b33a5a2",
+      "team_alias": "Consultant",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "92c0b7d0-1c37-4b1a-9032-0eb0aef7c398",
+      "team_alias": "Corp.Comm - Corp.Comm",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "b9b5d4f9-f32b-4d21-be77-1feae79ce6a2",
+      "team_alias": "FP&A - FP&A",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "41fabc2e-08e5-4a50-8b5d-36a67675da48",
+      "team_alias": "FP&A - FP&A New Ventures",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "b22bdfb2-183d-443b-b272-9efe6f08c147",
+      "team_alias": "Finance - Finance",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "94a9e1a9-a451-4ad7-8097-e3b0162f1bdb",
+      "team_alias": "Finance - Finance-New Ventures",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "2ff1369c-f272-465f-b3a9-179095ef8a52",
+      "team_alias": "Finance - Hesabres",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "fec97469-9d08-43b6-9f06-0e631512c571",
+      "team_alias": "Finance - Payroll",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "767ff9a9-868d-42db-b5ff-bca0f29a6d7c",
+      "team_alias": "Foundation-Tool",
+      "kind": "tool"
+    },
+    {
+      "team_id": "f31b139a-6010-4394-92f7-f284597f84ab",
+      "team_alias": "Group Finance - Group Finance",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "398af518-0777-4412-9c3d-d5411ef0b99f",
+      "team_alias": "Growth",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "d52508b6-8c55-4556-aa15-4b659d2ffba4",
+      "team_alias": "Growth - Call Center",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "c5fd5caa-c454-4df7-9958-4e5c6e7b3310",
+      "team_alias": "Growth - Creative",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "0d1d36f3-8d87-4de6-8d08-7b21d61563bb",
+      "team_alias": "Growth - Executive Assistant",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "def56d46-6e24-446d-afc4-7cfd1a5bc5df",
+      "team_alias": "Growth - Growth",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "883af3f2-e032-4754-a9ee-e9a906807610",
+      "team_alias": "Growth - Growth Planning",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "1bf6b39b-95d7-4c60-b583-2bcf7e887ace",
+      "team_alias": "Growth - Marketing",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "8a950491-90f6-4e71-b0ed-c6085673637c",
+      "team_alias": "Growth - OPEX",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "4b8b76bb-4abf-4cd0-9252-299f12924ed6",
+      "team_alias": "Growth - OPS",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "36e8c2c6-b435-4422-8232-644670ae1f1b",
+      "team_alias": "Growth - Operations",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "6b43afff-204c-4555-8f60-629c84ca88ce",
+      "team_alias": "Growth - Planning",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "791b7bf0-bda2-475c-81f3-d45a9668319e",
+      "team_alias": "Growth-Tool",
+      "kind": "tool"
+    },
+    {
+      "team_id": "e5622e76-bce7-4920-bfc0-e3b75dd393b2",
+      "team_alias": "HR - Admin",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "2985df9c-b34a-4a92-8635-97e448c581e6",
+      "team_alias": "HR - HR",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "ed81aa35-54e3-4934-a1be-1be9148102eb",
+      "team_alias": "HR - HRBP",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "d9de5d0a-c691-4159-bc89-368724f75f63",
+      "team_alias": "HR - KB",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "a1bb2471-3064-47ae-8014-920fdd3a1114",
+      "team_alias": "HR - Office",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "cb60cd6c-26ab-4b14-b166-1c59dea4df75",
+      "team_alias": "HR - People & Culture",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "f67b13c3-d946-4760-96d8-f1aca5481573",
+      "team_alias": "HR - Workplace & People Operations",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "b02b346b-87b6-4686-8600-819071eca079",
+      "team_alias": "IT",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "38e28dbb-0f82-4d55-ba65-d9a0704dc924",
+      "team_alias": "Integration-Tool",
+      "kind": "tool"
+    },
+    {
+      "team_id": "5ffc5b0e-dea1-483a-964c-80f3a0d6ed66",
+      "team_alias": "Internal Audit - Internal Audit",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "4fed6133-1ea3-49dd-84c5-682a2aef5d9f",
+      "team_alias": "Investment - Executive Assistant",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "367288b2-57fb-4a9a-824a-7bb73dbecb92",
+      "team_alias": "Investment - Investment",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "226dc034-b53a-4eea-bfd4-1d486239d042",
+      "team_alias": "Legal & Regulatory - Legal & Regulatory",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "83094871-4648-40ee-a905-8bf8b53b2a9e",
+      "team_alias": "Management Office",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "3bf4e5b4-14fd-4e5f-930d-dd93ab5f805e",
+      "team_alias": "Management Office - Executive Assistant",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "faf212e3-f600-432f-9180-60402fca80df",
+      "team_alias": "Management Office - Management Office",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "35a4cf66-c696-4102-9278-1fee84a8d379",
+      "team_alias": "OPS",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "2f4f5c20-ab82-4d9f-9230-fe1aebc7d152",
+      "team_alias": "OPS - DA & Cities",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "62d8dff0-068e-4973-b99f-3bf55ef3f9a6",
+      "team_alias": "One-Tool",
+      "kind": "tool"
+    },
+    {
+      "team_id": "2544cf77-15e5-4230-bd9c-ed2325637967",
+      "team_alias": "Operations - Warehouse",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "cc4c4403-c580-4e68-a846-778132e443bf",
+      "team_alias": "Platform-Tool",
+      "kind": "tool"
+    },
+    {
+      "team_id": "d533324b-99e0-444e-9669-d3133720c2c3",
+      "team_alias": "Security - Executive Assistant",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "22c27bbc-d41a-480d-bb3c-56367c3d0acd",
+      "team_alias": "Security - Fraud",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "272893f1-9fc0-4a63-b624-0c9af5998b09",
+      "team_alias": "Security - Guard",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "ac541e67-966c-414f-be16-c9a061d3fbb3",
+      "team_alias": "Security - Procurement",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "2a670dcf-64c9-448f-b58e-94aed4667b5a",
+      "team_alias": "Security - Reception",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "76c3de28-60d7-42bd-90fa-2337ab45d8f5",
+      "team_alias": "Security - SOS",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "2ef1b384-a495-4658-8097-7e1bd3c05ff0",
+      "team_alias": "Security - Security",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "4d3f007a-0272-479e-9a79-a0c25af6cc83",
+      "team_alias": "Security - Verification",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "bd58b78c-0a99-4041-afd2-bfb514cd1a50",
+      "team_alias": "Strategy - Strategy",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "5841da5d-f9b1-4958-87fa-942bd1d7602b",
+      "team_alias": "Super App Growth & Business Development",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "03d02af2-558f-4f04-885f-853ad150f29a",
+      "team_alias": "Super App Growth & Business Development -  Market Insight",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "1977a96d-febe-4927-9938-f3313663d896",
+      "team_alias": "Super App Growth & Business Development - Business Development",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "04d2ddd3-c593-4ef7-a49f-f2e8fe93f501",
+      "team_alias": "Super App Growth & Business Development - Growth Technology",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "6481cd23-c7e4-4ef8-b165-5f832109a384",
+      "team_alias": "Super App Growth & Business Development - Market Insight",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "55c1f5d8-16af-428a-b434-4874782d95f3",
+      "team_alias": "Super App Strategy & CX - Super App Strategy & CX",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "64b65449-83b9-4a9d-88f0-7666ab4cdaea",
+      "team_alias": "Tapsi Box - Data",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "0f8f4aac-8329-487c-8167-816c30f3372e",
+      "team_alias": "Tapsi Box - Design",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "73b7af6c-2357-4e47-bc43-ab0b69b2a1cd",
+      "team_alias": "Tapsi Box - Executive Management",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "8a4c2513-8f80-460a-8d48-e8ac42ab57d7",
+      "team_alias": "Tapsi Box - HR",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "fd8bd320-b652-4caf-b439-9940a2b1215a",
+      "team_alias": "Tapsi Box - OPS",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "2b96fcb6-84ad-4346-ae4b-b173c8f84083",
+      "team_alias": "Tapsi Box - Operations",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "8ed95f88-cb6f-4c41-acb8-51e1ced72bc9",
+      "team_alias": "Tapsi Box - Product",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "35b67d16-aca1-45d2-a3ab-e395078db86c",
+      "team_alias": "Tapsi Box - Tech",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "3baecdd0-e812-45cd-b8e5-4149a38f220d",
+      "team_alias": "Tapsi Market - Management",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "9e0ed466-903a-4233-8691-62d59536e532",
+      "team_alias": "Tapsi Market - Operations & Logistics",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "1f5d72f1-a91a-4671-b432-7ecf4d220cc6",
+      "team_alias": "Tapsi Market - Tech & Product",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "1f9c9714-5072-40c6-9b81-f6d44f23384a",
+      "team_alias": "TapsiBox-Manager-Tool",
+      "kind": "tool"
+    },
+    {
+      "team_id": "df1cb38f-0c38-4fc0-a7bc-8ef35afb86fe",
+      "team_alias": "TapsiBox-Tool",
+      "kind": "tool"
+    },
+    {
+      "team_id": "6161627b-eb74-4729-8a86-eb81ba396339",
+      "team_alias": "TapsiCloud-Tool",
+      "kind": "tool"
+    },
+    {
+      "team_id": "e387d81e-1dc7-4496-bb28-6aec7446707b",
+      "team_alias": "Tech & Product",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "786ddfc4-0cb3-49a0-9f63-75f5bf14ecff",
+      "team_alias": "Tech & Product - Cab",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "6b96b5a3-e928-414e-b830-63404b347006",
+      "team_alias": "Tech & Product - Cloud",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "9bc33aaa-0950-4978-a467-1901c475510b",
+      "team_alias": "Tech & Product - Foundation",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "e299c33e-ace1-4d89-a3c5-08b39b82928c",
+      "team_alias": "Tech & Product - Integration",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "8039a451-3acd-4bf1-8f81-c221baeb81d5",
+      "team_alias": "Tech & Product - One",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "d32bd43f-68a2-458b-a6e5-5c6f8924c79b",
+      "team_alias": "Tech & Product - Tech & Product",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "e658cd46-2237-4fc5-9acf-fcf7f6ff8cea",
+      "team_alias": "Tech - Journey",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "b463c983-d912-4f37-bc4a-de75e7806678",
+      "team_alias": "Tech - Marketplace",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "54aa158d-fc82-4ef6-b985-7063a7ca5b92",
+      "team_alias": "Tech - Support",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "0599ab14-4dd1-467f-8c29-8348053bffd0",
+      "team_alias": "Tech - Tech",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "e6c280f0-c8ee-43b8-b2a6-51af50b2a43b",
+      "team_alias": "Tech-Tool",
+      "kind": "tool"
+    },
+    {
+      "team_id": "c9ef5b34-2281-4c5e-84a3-524f9493a7ea",
+      "team_alias": "UI - Astra",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "66763940-39af-4ecb-b978-0952bad8a61c",
+      "team_alias": "UI - Fable",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "a057e5c4-8b37-4c14-bca5-e56d28d89af9",
+      "team_alias": "UI - Opus",
+      "kind": "non_tool"
+    },
+    {
+      "team_id": "c309b87b-3e59-468c-a06c-9afaa5192be5",
+      "team_alias": "UI - Sol",
+      "kind": "non_tool"
+    }
+  ],
+  "department_catalog": [
+    "Consultant",
+    "Corp.Comm - Corp.Comm",
+    "Finance - Finance",
+    "Finance - Finance-New Ventures",
+    "Finance - Hesabres",
+    "Finance - Payroll",
+    "FP&A - FP&A",
+    "FP&A - FP&A New Ventures",
+    "Growth",
+    "Growth - Call Center",
+    "Growth - Creative",
+    "Growth - Executive Assistant",
+    "Growth - Growth",
+    "Growth - Growth Planning",
+    "Growth - Marketing",
+    "Growth - Operations",
+    "Growth - OPEX",
+    "Growth - OPS",
+    "Growth - Planning",
+    "HR - Admin",
+    "HR - HR",
+    "HR - HRBP",
+    "HR - Office",
+    "HR - People & Culture",
+    "HR - Workplace & People Operations",
+    "Internal Audit - Internal Audit",
+    "Investment - Executive Assistant",
+    "Investment - Investment",
+    "Legal & Regulatory - Legal & Regulatory",
+    "Management Office",
+    "Management Office - Executive Assistant",
+    "Management Office - Management Office",
+    "Operations - Warehouse",
+    "OPS",
+    "OPS - DA & Cities",
+    "Security - Executive Assistant",
+    "Security - Fraud",
+    "Security - Guard",
+    "Security - Procurement",
+    "Security - Reception",
+    "Security - Security",
+    "Security - SOS",
+    "Security - Verification",
+    "Strategy - Strategy",
+    "Super App Growth & Business Development",
+    "Super App Growth & Business Development -  Market Insight",
+    "Super App Growth & Business Development - Business Development",
+    "Super App Growth & Business Development - Growth Technology",
+    "Super App Growth & Business Development - Market Insight",
+    "Super App Strategy & CX - Super App Strategy & CX",
+    "Tapsi Box - Data",
+    "Tapsi Box - Design",
+    "Tapsi Box - Executive Management",
+    "Tapsi Box - HR",
+    "Tapsi Box - Operations",
+    "Tapsi Box - OPS",
+    "Tapsi Box - Product",
+    "Tapsi Box - Tech",
+    "Tapsi Market - Management",
+    "Tapsi Market - Operations & Logistics",
+    "Tapsi Market - Tech & Product",
+    "Tech - Journey",
+    "Tech - Marketplace",
+    "Tech - Support",
+    "Tech - Tech",
+    "Tech & Product",
+    "Tech & Product - Cab",
+    "Tech & Product - Cloud",
+    "Tech & Product - Foundation",
+    "Tech & Product - Integration",
+    "Tech & Product - One",
+    "Tech & Product - Tech & Product"
+  ],
+  "schema_version": 1,
+  "inspection_date": "2026-10-06",
+  "inspection_timezone": "Asia/Tehran",
+  "source_host": "mirza-ha1",
+  "source_endpoint": "GET /team/list",
+  "production_writes": false,
+  "department_source": "deployed scripts/department_teams.txt",
+  "directory_department_catalog_revalidated": false
+}
