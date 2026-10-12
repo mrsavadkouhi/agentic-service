@@ -68,6 +68,9 @@ class Connectors:
                     http, lifecycle_template_ids=installed_lifecycle_templates(),
                     offboarding=offboarding, onboarding=onboarding,
                     lifecycle_creator_ids=settings.servicedesk_lifecycle_creator_ids,
+                    lifecycle_creator_coverage_confirmed=(
+                        settings.servicedesk_lifecycle_creator_coverage_confirmed
+                    ),
                 )
             elif name == "mattermost":
                 component = cls(http, expected_bot_username=settings.mattermost_bot_username)

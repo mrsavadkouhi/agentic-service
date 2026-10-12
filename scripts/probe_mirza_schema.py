@@ -61,7 +61,8 @@ mirza.failed = safe_diagnostic
 async def verify():
     http = ReadOnlyHTTP('http://127.0.0.1:4000', SecretStr(os.environ['LITELLM_MASTER_KEY']),
                         mirza.Mirza.PATHS)
-    result = await mirza.Mirza(http, contract='installed').inventory()
+    reader = mirza.Mirza(http, contract='installed')
+    result = await reader.inventory()
     print(json.dumps({'normalized_inventory_status': result.status,
         'reason_code': result.reason_code, 'counts': {
             'users': len(result.data.users), 'teams': len(result.data.teams),
@@ -78,8 +79,16 @@ async def verify():
     mapping_passed = bool(mapping.approved) and verified == len(mapping.approved)
     print(json.dumps({'approved_mappings': len(mapping.approved),
         'verified_tool_destinations': verified, 'mapping_catalog_passed': mapping_passed}))
+    # One bounded key-info read checks the typed identity contract privately.
+    key_detail_passed = True
+    if result.status == 'ok' and result.data.keys:
+        key = result.data.keys[0]
+        detail = await reader.key(key.key_ref)
+        key_detail_passed = detail.status == 'ok'
+        print(json.dumps({'normalized_key_detail_status': detail.status,
+            'key_detail_identity_verified': key_detail_passed}))
     await http.close()
-    if result.status != 'ok' or not mapping_passed:
+    if result.status != 'ok' or not mapping_passed or not key_detail_passed:
         raise SystemExit(1)
 asyncio.run(verify())
 """
@@ -112,6 +121,7 @@ asyncio.run(verify())
             {"normalization_error_type"},
             {"normalization_error_type", "fields", "error_codes"},
             {"approved_mappings", "verified_tool_destinations", "mapping_catalog_passed"},
+            {"normalized_key_detail_status", "key_detail_identity_verified"},
         ):
             print(json.dumps(value))
     if result.returncode:

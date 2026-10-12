@@ -581,6 +581,142 @@ async def test_mirza_unknown_key_owner_is_preserved_without_resolving_identity()
     await http.close()
 
 
+@pytest.mark.parametrize("change", ["owner", "key_team", "key_expiry", "key_budget",
+                                   "team_models", "team_reasoning", "user_teams", "models"])
+async def test_mirza_reconciles_catalog_policy_changes_and_discards_key_handles(change):
+    passes = 0
+
+    def handle(request):
+        nonlocal passes
+        if request.url.path == "/user/list":
+            passes += 1
+        data = mirza_handler(request).json()
+        if passes == 2:
+            if request.url.path == "/key/list":
+                changes = {"owner": {"user_id": "other"}, "key_team": {"team_id": "other"},
+                           "key_expiry": {"expires": "2099-01-01T00:00:00Z"},
+                           "key_budget": {"max_budget": 20}}
+                data["keys"][0].update(changes.get(change, {}))
+            elif request.url.path == "/team/list":
+                if change == "team_models":
+                    data[0]["models"] = []
+                elif change == "team_reasoning":
+                    data[0]["metadata"] = {"reasoning_levels": ["xhigh"]}
+            elif request.url.path == "/user/list" and change == "user_teams":
+                data["users"][0]["teams"] = ["tool"]
+            elif request.url.path == "/v1/models" and change == "models":
+                data["data"] = []
+        return httpx.Response(200, json=data)
+
+    http = transport(handle, Mirza.PATHS)
+    reader = Mirza(http)
+    reader._key_handles["old-reference"] = SecretStr("sk-stale-handle")
+    result = await reader.inventory()
+    assert result.status == "unstable" and result.data is None
+    assert result.reason_code == "mirza_catalog_changed_during_read"
+    assert reader._key_handles == {} and passes == 2
+    assert "sk-" not in result.model_dump_json()
+    await http.close()
+
+
+async def test_mirza_usage_and_catalog_order_changes_preserve_latest_observed_spend():
+    passes = 0
+
+    def handle(request):
+        nonlocal passes
+        if request.url.path == "/user/list":
+            passes += 1
+        data = mirza_handler(request).json()
+        if passes == 2:
+            if request.url.path == "/user/list":
+                data["users"][0].update(spend=3, teams=["ui", "tool"])
+            elif request.url.path == "/key/list":
+                data["keys"][0]["spend"] = -0.5
+            elif request.url.path == "/team/list":
+                data.reverse()
+                for row in data:
+                    row["spend"] = 4
+        return httpx.Response(200, json=data)
+
+    http = transport(handle, Mirza.PATHS)
+    reader = Mirza(http)
+    result = await reader.inventory()
+    assert result.status == "ok" and passes == 2
+    assert result.data.users[0].budget.spend == 3
+    assert result.data.keys[0].budget.spend == -0.5
+    assert all(row.budget.spend == 4 for row in result.data.teams)
+    assert result.data.keys[0].key_ref in reader._key_handles
+    assert "sk-hidden" not in result.model_dump_json()
+    await http.close()
+
+
+async def test_mirza_second_catalog_read_failure_is_not_a_complete_inventory():
+    passes = 0
+
+    def handle(request):
+        nonlocal passes
+        if request.url.path == "/user/list":
+            passes += 1
+        if passes >= 2:
+            return httpx.Response(403, json={"error": "sk-sensitive-denial"})
+        return mirza_handler(request)
+
+    http = transport(handle, Mirza.PATHS)
+    reader = Mirza(http)
+    result = await reader.inventory()
+    assert result.status == "unavailable" and result.data is None
+    assert reader._key_handles == {} and "sk-sensitive" not in result.model_dump_json()
+    await http.close()
+
+
+@pytest.mark.parametrize("case,expected", [("valid", "ok"), ("envelope_only", "ok"),
+    ("token_only", "ok"), ("wrong_envelope", "invalid"), ("wrong_token", "invalid"),
+    ("missing", "incomplete"), ("shape", "invalid")])
+async def test_mirza_key_details_must_identify_the_requested_key(case, expected):
+    detail_reads = 0
+
+    def handle(request):
+        nonlocal detail_reads
+        if request.url.path != "/key/info":
+            return mirza_handler(request)
+        detail_reads += 1
+        handle = request.url.params["key"]
+        row = mirza_handler(httpx.Request("GET", "https://fixture.invalid/key/list")).json()[
+            "keys"
+        ][0]
+        data = {"key": handle, "info": row}
+        if case == "envelope_only":
+            row.pop("token")
+        elif case == "token_only":
+            data.pop("key")
+        elif case == "wrong_envelope":
+            data["key"] = "sk-other-key"
+        elif case == "wrong_token":
+            row["token"] = "sk-other-key"
+        elif case == "missing":
+            data.pop("key")
+            row.pop("token")
+        elif case == "shape":
+            data["info"] = []
+        return httpx.Response(200, json=data)
+
+    http = transport(handle, Mirza.PATHS)
+    reader = Mirza(http)
+    inventory = await reader.inventory()
+    assert inventory.status == "ok"
+    result = await reader.key(inventory.data.keys[0].key_ref)
+    assert result.status == expected and detail_reads == 1
+    assert "sk-" not in result.model_dump_json()
+    if expected == "ok":
+        assert result.data.key_ref == inventory.data.keys[0].key_ref
+        assert result.data.expired and result.data.team_id == "tool"
+    else:
+        assert result.data is None
+    unknown = await reader.key("unregistered-reference")
+    assert unknown.status == "not_found" and detail_reads == 1
+    await http.close()
+
+
 def test_reasoning_ceiling_uses_legacy_wildcard_and_model_grants():
     row = reasoning(
         {
@@ -771,6 +907,18 @@ async def test_context_detects_changed_ticket_and_does_not_mix_key_with_ui_reaso
     assert "lifecycle_process_excluded" in excluded.blockers
     assert "relationship_coverage_unverified" in excluded.blockers
     assert not excluded.read_complete and not excluded.grant_context_verified
+    desk.relationships.return_value = ok("servicedesk", "relationships", RelationshipRead(
+        parent_id=None, child_ids=(), process_association="non_lifecycle",
+        source="confirmed_n8n_creator_coverage", coverage_verified=True, evidence_ref="coverage",
+    ), "fixture")
+    desk.ticket.side_effect = [ticket, ticket]
+    non_lifecycle = await reader.read("1")
+    assert non_lifecycle.ticket.data.process_verified
+    assert non_lifecycle.ticket.data.relationship_verified
+    assert non_lifecycle.ticket.data.process_kind is None
+    assert "process_association_unverified" not in non_lifecycle.blockers
+    assert "relationship_coverage_unverified" not in non_lifecycle.blockers
+    assert not non_lifecycle.read_complete and not non_lifecycle.grant_context_verified
     changed = ticket.model_copy(
         update={"data": ticket.data.model_copy(update={"revision_digest": "f" * 64})}
     )
@@ -915,6 +1063,7 @@ async def test_creator_guard_json_setting_reaches_only_servicedesk_reader(monkey
     )
     connectors = Connectors(settings)
     assert connectors.reader.desk.lifecycle_creator_ids == frozenset({"90", "91"})
+    assert not connectors.reader.desk.lifecycle_creator_coverage_confirmed
     assert "servicedesk_lifecycle_creator_ids" not in repr(settings)
     await connectors.close()
 
@@ -926,3 +1075,25 @@ def test_creator_guard_rejects_invalid_or_duplicate_configuration(refs):
             _env_file=None, database_url="postgresql+psycopg://unit:unit@localhost/unit",
             servicedesk_lifecycle_creator_ids=refs,
         )
+
+
+@pytest.mark.parametrize("refs", [(), ("90", "91")])
+def test_historical_creator_coverage_requires_exactly_one_account(refs):
+    with pytest.raises(ValidationError):
+        Settings(
+            _env_file=None, database_url="postgresql+psycopg://unit:unit@localhost/unit",
+            servicedesk_lifecycle_creator_ids=refs,
+            servicedesk_lifecycle_creator_coverage_confirmed=True,
+        )
+
+
+async def test_confirmed_creator_coverage_setting_reaches_only_api_reader(monkeypatch):
+    monkeypatch.setenv("AGENTIC_SERVICEDESK_LIFECYCLE_CREATOR_IDS", '["90"]')
+    monkeypatch.setenv("AGENTIC_SERVICEDESK_LIFECYCLE_CREATOR_COVERAGE_CONFIRMED", "true")
+    settings = Settings(
+        _env_file=None, database_url="postgresql+psycopg://unit:unit@localhost/unit",
+        servicedesk_url="https://fixture.invalid", servicedesk_read_token="fixture-token",
+    )
+    connectors = Connectors(settings)
+    assert connectors.reader.desk.lifecycle_creator_coverage_confirmed
+    await connectors.close()

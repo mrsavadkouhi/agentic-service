@@ -10,6 +10,7 @@ This register does not introduce another approval process for development.
 |---|---|---|
 | INT-01 | ServiceDesk Plus 15.1 Build 15100 | Verify installed contracts through read-only inspection |
 | INT-02 | No staging environment | Local fixtures/mocks, production observation, then scoped activation |
+| AGENT-FRAMEWORK | Use PydanticAI for the Python agent layer | Typed classification/extraction/drafting and scoped read tools run in Temporal activities; application policies and privileged connectors enforce authorization. Retain existing runtime/contracts; implement and pin inference dependencies with the first agents in Step 5. Confirmed 2026-10-12 |
 | MIR-DEPLOYMENT | The operator applies Mirza changes personally | Prepare reviewed local files and commands; do not deploy Mirza. Resume read-only verification after operator rollout |
 | GROUP-SCOPE | Helpdesk, Network, DWE, VOIP | Support-group destinations use verified live IDs |
 | GROUP-OWNERSHIP | DWE owns the named platforms and system administration; Network and VOIP use their related subjects/descriptions | Use the [service catalog](service-ownership.md); everything else stays in Helpdesk; live IDs remain pending |
@@ -17,6 +18,7 @@ This register does not introduce another approval process for development.
 | PROCESS-TRANSFER-CHILDREN | Internal transfer has no child tickets | Exclude its root; do not invent child relationships. Confirmed 2026-10-06 |
 | PROCESS-CHILD-PRODUCER | Onboarding/offboarding child tickets are created by n8n | Do not assume manually created/linked children. Missing automation mappings remain unknown because creation precedes persistence. Confirmed 2026-10-06 |
 | PROCESS-PRODUCER-ACCOUNT | n8n uses a dedicated ServiceDesk technician account for child creation | A verified configured creator ID may flag an unregistered automation ticket for review. Creator identity alone neither proves a parent relationship nor establishes that another ticket is standalone. Confirmed 2026-10-06 |
+| PROCESS-PRODUCER-HISTORY | All onboarding/offboarding children, including historical tickets, have always used the same dedicated n8n ServiceDesk account | With this explicit coverage contract and one verified configured account ID, a stable different creator plus a non-root template can rule out lifecycle membership after positive mappings are checked. Missing creator metadata or unmatched n8n-created tickets remain blocked. The historical guarantee is operator evidence; samples verify identity, not all history. Confirmed 2026-10-12 |
 | GROUP-INTAKE | Any request currently in Helpdesk, from email or UI, regardless of template | Listen regardless of assignment; apply a separate unassigned-only group-write gate |
 | GROUP-PRESERVE | Preserve technician assignments for ordinary group correction | Keep the exact technician value; assigned ordinary tickets receive no group write |
 | GROUP-SIDE-EFFECT | Changing the support group clears the technician | Ordinary correction is unassigned-only; the approved Mirza DWE handoff is an exception |
@@ -24,7 +26,7 @@ This register does not introduce another approval process for development.
 | INNER-TEMPLATES | Ordinary template A/template B mismatch outside Helpdesk | Do nothing, including mismatches across specialized support groups |
 | NO-TEMPLATE-WRITES | Template changes are not possible | Always preserve the submitted template; no template-write capability |
 | MIR-APPROVAL | Dedicated Mirza templates use their existing required ServiceDesk approvals | Fulfill after final required approval; no extra sign-off or self-approval |
-| MIR-APPROVAL-EDIT | Editing an approved Mirza ticket does not automatically reset its approvals | An Approved status cannot establish approval of current terms. Preserve the existing renewed-review requirement for materially changed terms; manual restart capability remains unverified. Confirmed 2026-10-06 |
+| MIR-APPROVAL-EDIT | Editing an approved Mirza ticket does not automatically reset its approvals; changed terms require confirmation from the original approver(s) in ticket notes before reopening | Hold changed requests and bind every original approver's confirmation to the exact revised terms. Older approvals without a recorded approved-terms snapshot also require explicit confirmation. Native required approvals still apply; no reset API or substitute approver. Updated 2026-10-12 |
 | MIR-FALLBACK-APPROVAL | Other Helpdesk templates have no Mirza approval steps; move supported requests to DWE, put On Hold, notify the DWE person in charge with the ticket link | Fulfill only after that authorized person changes the held ticket to Open; preserve the original template |
 | MIR-INCHARGE | Each ServiceDesk support group has `incharge_group`; resolve the DWE person in charge dynamically from that group's value | Read the DWE support-group field for notification recipient and approval actor; do not hardcode a person's email |
 | MIR-INCHARGE-SNAPSHOT | Keep the originally resolved person for that request even if `incharge_group` later changes | Persist the approver at handoff; notification retries and approval checks use that identity; new requests resolve the current field |
@@ -186,9 +188,22 @@ that its approver reviewed an edited recipient, operation, model, reasoning leve
 or budget. Correlate observed ticket content/revisions with approval reads, and
 keep those observation digests distinct from approved execution terms. Manual
 restart of existing approval steps is not confirmed; the operator is unsure.
-Do not invent a reset operation or substitute clarification/Open for required
-dedicated-template approval. Without approval evidence for the resulting terms,
-fulfillment remains paused under the existing approval gate.
+On 2026-10-12 the operator confirmed the renewal procedure: put changed requests
+On Hold and require the original approver(s) to confirm the exact revised terms
+in ticket notes before reopening. Older approvals without a recorded approved-terms
+snapshot also need explicit confirmation. Freeze the original reviewing identities
+and approval configuration from verified native evidence; do not substitute the
+current technician, DWE in-charge or a changed approver list. Each original
+approver must confirm the resulting terms after the current hold and before the
+verified Open transition. Preserve the confirmation note identities/content digests,
+authors and update authors, original review reference, terms digest and source order.
+An unrelated person's note edit cannot supply the approver's confirmation.
+Unchanged terms with a verified approved-terms record do not require this renewal.
+Do not invent a reset operation or substitute ordinary clarification/Open for
+required dedicated-template approval. All native required approvals remain necessary;
+note confirmation supplies renewed terms evidence, not a waiver of approval stages.
+Unknown original identities, changed approval configuration or unverifiable note
+terms/order keep fulfillment paused. No live renewal writes are implemented yet.
 Existing eight-job boundaries, identity verification, and no-op rules for clearly
 unsupported/ineligible requests still apply.
 
@@ -206,6 +221,9 @@ the original DWE in-charge for fallback approval, the selected technician or
 original DWE in-charge for clarification, and the authoritative pending approvers
 for dedicated-template approval. Resolve dedicated approval recipients from the
 current required approval stage; exact live API/identity contracts remain pending.
+For terms reconfirmation, notify the frozen original approver(s) whose confirmations
+are still missing, and request a ticket note confirming revised terms followed by
+Open. This is distinct from requesting a pending native approval action.
 Do not change the fallback approver snapshot because `incharge_group` changes.
 
 Include the ticket link and the outstanding action. Reuse the appropriate

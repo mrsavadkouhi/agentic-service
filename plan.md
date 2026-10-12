@@ -94,11 +94,27 @@ Helpdesk webhook / polling reconciliation
   grant semantics rather than duplicating them here.
 - Existing n8n workflows may forward events or deliver notifications. Each
   business workflow has one execution owner in `agentic-service`.
-- Start with typed model calls and explicit workflows. Add an agent framework
-  only if later jobs need bounded, dynamic tool planning.
+- Use PydanticAI for the agent layer: Helpdesk classification, extraction of the
+  eight Mirza jobs, missing-detail detection and message drafting. Reuse the
+  existing Pydantic contracts as structured proposal outputs. Confirmed by the
+  operator on 2026-10-12; this replaces the deferred framework choice.
+- Run bounded PydanticAI calls inside the existing Temporal activities. Temporal
+  remains the sole workflow owner for state, retries, approval/clarification waits
+  and reminders. Record and reuse completed model decisions on replay; an agent
+  run is not a second workflow or a new approval authority.
+- Register explicit read tools with scoped dependencies and model-safe results.
+  Application policies validate proposals and authorize actions; privileged
+  connectors remain behind those gates. Never expose a generic HTTP client,
+  database, SSH, administration credentials or write connectors to an agent.
+- Implement and pin the minimal PydanticAI inference dependencies in Step 5,
+  together with the first agents and offline model/tool tests. The existing
+  runtime needs no additional container, workflow migration or provider SDK yet.
 
 Temporal documentation: [durable AI workflows](https://docs.temporal.io/ai) and
 [activity idempotency](https://docs.temporal.io/activity-definition).
+PydanticAI references: [structured output](https://pydantic.dev/docs/ai/core-concepts/output/),
+[installation](https://pydantic.dev/docs/ai/overview/install/) and
+[Temporal integration](https://pydantic.dev/docs/ai/capabilities/durable_execution/temporal/).
 
 Onboarding, offboarding and internal-transfer process tickets, including their
 associated children, are excluded from both workflows. Preserve their process
@@ -161,6 +177,10 @@ integration exit condition has not yet been met.
       Unsupported or ineligible Mirza requests are no-ops.
 - [x] Define dedicated-template Mirza authorization: fulfill after existing
       required approvals are complete; no extra sign-off or self-approval.
+- [x] Define terms renewal: changed terms and older approvals without a recorded
+      approved-terms snapshot require the original approver(s)' explicit ticket-note
+      confirmations before reopening. Native required approvals still apply.
+      Confirmed on 2026-10-12; original identities and exact terms must be verified.
 - [x] Define other-Helpdesk-template approval: supported Mirza requests move to
       DWE/On Hold; notify its person in charge through Mattermost with the ticket
       link. That person's subsequent Open transition authorizes the job.
@@ -291,6 +311,10 @@ Status: completed and locally verified on 2026-10-06. See
 [runtime operations](docs/runtime-operations.md). Both modes default to observe;
 only synthetic probes are registered, with no production write connectors.
 
+PydanticAI decision reviewed on 2026-10-12: retain this runtime and its resource
+caps. Add the agent package/dependencies with Step 5's inference implementation;
+no extra service, migration or replay of completed setup checks is required.
+
 - [x] Create the Python project, dependency pins, Dockerfile, Compose development
       stack, `.env.example`, README, and repository instructions.
 - [x] Separate the API, dispatch worker, and access worker so credentials and
@@ -335,6 +359,12 @@ actors, audit/action receipts and reminder intents. The execution connector is
 explicitly synthetic. Installed API verification, authoritative normalization of
 live reads and actual status/grant/notification delivery remain Steps 4 and 6–9.
 This completion does not authorize or claim production fulfillment.
+
+PydanticAI decision reviewed on 2026-10-12: reuse these proposal, identity,
+approval and action contracts. Agent output supplies interpretation, not verified
+evidence. Keep deterministic policy gates and action idempotency outside model
+tools; keep SDK messages and raw ticket/secret content out of workflow history.
+Add agent-specific output/tool tests in Step 5; retain the completed execution tests.
 
 - [x] Normalize helpdesk events into ticket IDs, revision/event IDs, authenticated
       requester IDs, intended recipients, content, template/category IDs, current
@@ -385,7 +415,7 @@ ServiceDesk approval/history semantics. Preserve those gates in later steps.
 
 ## Step 4 — Implement read-only connectors
 
-Status: in progress on 2026-10-06. The read-only foundation, operator context
+Status: in progress on 2026-10-12. The read-only foundation, operator context
 endpoint and local connector tests are implemented; installed Mirza and basic
 ServiceDesk normalization pass. [Implementation and remaining verification](docs/step-4-read-connectors.md)
 record the ServiceDesk approval-term/history-order/process gates, verified AD
@@ -411,7 +441,9 @@ prove that a newly observed ticket is standalone. Read-only inspection of n8n's
 SQLite store now observes this ordering in three active published workflow graphs,
 covering 12 recognized child-creation nodes using one creation credential. No
 credential was used or exported. Failed-persistence recovery and complete producer
-coverage remain unverified, so unmatched tickets still cannot be processed.
+coverage are not established by the graphs alone. The separately confirmed
+historical creator contract now protects unmatched children without relying on
+mapping persistence; unconfigured coverage still blocks unmatched tickets.
 The older `n8n` repository also reveals `public.onboarding_process`: installed
 ID-only SELECTs match both supplied parents and all eight onboarding children.
 An optional SELECT-only index now provides direct child lookup before the packed
@@ -431,7 +463,12 @@ remain operator-applied; do not deploy Mirza from this task.
 
 The context reader separately rechecks notes, history, approvals (including a
 digest of template configuration) and relationships, rejecting changed observations
-even when the ticket revision remains unchanged. All 188 local unit checks pass.
+even when the ticket revision remains unchanged. All 289 local unit checks pass.
+Process-map reads now also recheck the parent's native identity/template, and
+call-center bridges recheck reciprocal references and packed child IDs. Changed
+or unavailable parent evidence invalidates the relationship observation even
+when the database mapping is stable. Unrelated parent description edits do not
+invalidate these checks; atomic snapshots and coverage remain unverified.
 A new installed authority probe normalizes samples from both Mirza templates;
 the initial samples were pending/missing stages. A bounded metadata scan then
 finds approved examples in both templates, verifying required/current stages,
@@ -440,15 +477,56 @@ unverified. Native ticket creation actors/times are exposed for observation.
 The operator confirms onboarding/offboarding children are n8n-created through a
 dedicated ServiceDesk technician account. An optional, API-only creator-ID guard
 now flags missing mappings as incomplete without treating creators as proof of
-process membership or other creators as standalone. Runtime IDs remain unset.
+process membership. The operator now confirms every historical child has always
+used the same account. An explicit coverage setting, requiring exactly one native
+creator ID, lets the reader rule out lifecycle membership for a stable different
+creator after root/template and positive mapping checks. Missing creator/template
+identity, failed source reads and unmatched n8n-created tickets remain blocked.
+Live GET-only checks observe one stable creator across all eleven supplied children
+and verify the non-lifecycle branch for a separate ticket. Samples verify native
+identity; historical coverage comes from the operator. Runtime IDs remain unset;
+the native account ID stayed in memory and no production settings were persisted.
 The operator confirms that edits do not reset approvals and is unsure about
 manual restart of the existing steps. Approval reads now carry observed ticket
 content/revision digests; the context rejects mismatched observations without
 claiming that those digests describe what the approver approved. Current-term
-approval binding and the installed renewal mechanism remain unverified.
+approval binding remains unverified. The operator now confirms note-based renewal
+by the original approver(s) for changed terms and older approvals without a
+recorded approved-terms snapshot. Typed baseline/note/reopen contracts and a
+deterministic reconfirmation check require every original reviewer, exact terms,
+unchanged approval configuration and verified current-hold/note/Open ordering.
+No live evidence adapter, hold/notification writes or executable-intake integration
+is added; this check does not authorize fulfillment or waive native stages.
 The extended read-only probe passes on approved examples from both templates,
 verifying stable ticket/approval observations and matching observed digests.
 These are observation checks, not authorization of edited execution terms.
+
+The 2026-10-12 live Mirza probe now verifies two-pass catalog reconciliation,
+all 30 approved Tool destinations and exact identity for one key-detail read.
+Permission, membership, expiry or budget-policy changes invalidate inventory;
+spend-only changes retain the latest observation. Both failed reconciliation and
+an unavailable second pass clear cached secret handles. Fresh ServiceDesk basic
+reads pass; native approval-detail samples from both dedicated templates expose
+actors/times/comments but no recognized approved-terms snapshot. History samples
+expose IDs/times/actors without a verified source sequence. Further installed
+source/schema evidence is needed; no approval or process authority is inferred.
+The operator supplied the installed `/ui/api_documentation` page. It returns a
+browser login form to the technician-key GET, while the same key reads the
+request `_metainfo` schema successfully. That schema exposes native field types
+and read-only flags but does not establish history order or approval-term binding.
+Nested history/note/approval `_metainfo` routes are unavailable in the checked
+sample. The operator has no ServiceDesk SSH access; continue through online
+on-premises vendor references and authorized API reads. SSH is not a development
+prerequisite; an authenticated documentation export is an optional evidence source.
+No browser password or alternate credential was collected.
+Online release notes identify Build 15100 and describe later Build 15300 history
+changes; inspect candidate contracts on the installed system before using them.
+An opt-in authority probe now compares two full `/_history` reads with `/history`.
+Both approved Mirza template examples return stable, matching event observations.
+The runtime retains its existing route and all unverified authority blockers;
+the reviewed online documentation does not establish a source sequence, approval
+snapshot or renewal mechanism for the requested edited terms. See the
+[source comparison](docs/step-4-read-connectors.md#online-vendor-references-and-installed-comparison).
 
 - [ ] Read helpdesk tickets, revisions, support groups, templates, existing approvals,
       status transitions with actor identity and ordering for the DWE handoff,
@@ -486,8 +564,28 @@ nonstandard owner IDs are preserved for reads without relaxing execution contrac
 **Exit condition:** A ticket produces a complete, traceable context snapshot with
 no external writes and no secrets in logs or inference inputs.
 
+PydanticAI decision reviewed on 2026-10-12: read connectors remain ordinary
+typed Python components. Step 5's tools will use reviewed, bounded projections
+of their results rather than returning the complete operator context or global
+employee/key inventory. Preserve unavailable/ambiguous/unstable outcomes and
+evidence references; no model tool may manufacture approval or process coverage.
+Mirza permission/catalog reconciliation and key-detail identity checks are now
+implemented and live checked. Approval and lifecycle source
+gaps remain open; framework selection does not satisfy the Step 4 exit condition.
+
 ## Step 5 — Build ticket listening and classification in observation mode
 
+- [ ] Add a pinned minimal PydanticAI inference package for the LiteLLM-compatible
+      provider; check compatibility with existing Python/Pydantic/HTTP dependencies
+      and resource limits. Use offline model fixtures before any live inference.
+- [ ] Implement separate PydanticAI classification and Mirza request-extraction
+      agents with typed proposal outputs, explicit scoped read tools, bounded
+      model/tool/validation retries, request/token/cost limits and an overall timeout.
+      Disabled inference remains a traceable unavailable outcome.
+- [ ] Run agents only through Temporal activities. Disable content-bearing SDK
+      logging/tracing by default; store sanitized decisions, evidence references
+      and model/prompt/tool-policy versions. Validate proposals through the existing
+      policy engine; no model or tool result is an approval or execution receipt.
 - [ ] Exclude verified onboarding/offboarding/internal-transfer process tickets
       and associated children before routing or Mirza intake. Unknown process
       association is local review without writes; incidental keywords or any
@@ -582,8 +680,12 @@ and concurrent-edit scenarios.
       pending, rejected, missing, or unavailable evidence cannot authorize a grant.
       An LLM recommendation or free-text approval claim is not approval evidence.
       Edits retain old approvals: verify approval of resulting terms, and pause
-      materially changed requests pending renewed review. Do not invent an approval
-      reset API or a substitute approver while the renewal mechanism is unverified.
+      changed requests pending original approver(s)' explicit note confirmations
+      of exact revised terms after On Hold and before Open. Apply the same renewal
+      to older approvals without a recorded approved-terms snapshot. Persist
+      original reviewer identities and verify each confirmation; integrate the
+      Step 4 reconfirmation check without bypassing required native approval stages.
+      Do not invent an approval reset API or substitute another approver.
 - [ ] For other Helpdesk templates, persist the supported request's terms and
       handoff identity, then move the ticket to DWE and set On Hold. The group
       move may clear its technician, including an existing human assignment;

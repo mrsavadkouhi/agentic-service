@@ -12,7 +12,16 @@ Step 4 adds optional read-only connectors and an operator-only context endpoint;
 installed Mirza and basic ServiceDesk reads are verified. Approval/process
 authority and other live contracts remain pending. See
 [read-only integration context](docs/step-4-read-connectors.md).
+Changed Mirza terms and older approvals without a recorded terms snapshot require
+the original approver(s)' explicit note confirmations before reopening. The local
+confirmation check is implemented; live evidence and workflow integration are pending.
+An optional creator-coverage setting uses the confirmed historical n8n account
+to protect unmapped lifecycle children and rule out children from other creators.
+It defaults to false and requires one verified account ID.
 Classification, provisioning and Mattermost delivery belong to later steps.
+PydanticAI is selected for classification, Mirza request extraction and drafting;
+its inference dependencies and agents will be implemented in Step 5. Existing
+Pydantic contracts, Temporal execution and deterministic policy gates are retained.
 Local startup needs no production credentials.
 
 ## Start locally

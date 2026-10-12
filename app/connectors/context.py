@@ -88,7 +88,12 @@ class ContextReader:
                 )
         if ticket.status == "ok" and relationships.status == "ok":
             relation = relationships.data
-            if relation.process_association == "lifecycle" and relation.process_kind is not None:
+            if (
+                relation.process_association == "lifecycle" and relation.process_kind is not None
+            ) or (
+                relation.coverage_verified
+                and relation.process_association in {"standalone", "non_lifecycle"}
+            ):
                 ticket = ok(
                     "servicedesk",
                     "ticket",

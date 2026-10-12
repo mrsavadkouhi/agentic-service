@@ -87,6 +87,7 @@ class ServiceDesk:
         offboarding=None,
         onboarding=None,
         lifecycle_creator_ids=(),
+        lifecycle_creator_coverage_confirmed=False,
     ):
         self.http, self.page_size, self.max_pages = http, page_size, max_pages
         self.contract = contract
@@ -99,6 +100,11 @@ class ServiceDesk:
         ):
             raise ValueError("Invalid lifecycle creator configuration")
         self.lifecycle_creator_ids = frozenset(lifecycle_creator_ids)
+        if type(lifecycle_creator_coverage_confirmed) is not bool or (
+            lifecycle_creator_coverage_confirmed and len(self.lifecycle_creator_ids) != 1
+        ):
+            raise ValueError("Historical lifecycle creator coverage requires exactly one account")
+        self.lifecycle_creator_coverage_confirmed = lifecycle_creator_coverage_confirmed
 
     @staticmethod
     def validate(data):
@@ -457,6 +463,26 @@ class ServiceDesk:
             self.onboarding, ticket_id, "onboarding", root=root
         )
 
+    async def recheck_lifecycle_ticket(self, observed, *, bridge=False):
+        # Mapping rows do not change when a parent template or bridge changes.
+        # Compare only relationship fields; unrelated parent edits are harmless.
+        def projection(row):
+            result = (identifier(row), identifier(row.get("template")))
+            if bridge:
+                udf = row.get("udf_fields") or {}
+                result += (udf.get("udf_sline_4217"), udf.get("udf_sline_10449"))
+            return result
+
+        try:
+            current = self.validate(
+                await self.http.get(f"/api/v3/requests/{observed['id']}")
+            )["request"]
+            unchanged = projection(current) == projection(observed)
+        except Exception:
+            unchanged = False
+        if not unchanged:
+            raise ReadFailure("unstable", "lifecycle_parent_changed_during_read")
+
     async def database_relationships(self, reader, ticket_id, kind, *, root=False):
         if reader is None:
             return None
@@ -467,7 +493,7 @@ class ServiceDesk:
             if root and kind == "offboarding":
                 raise ReadFailure("incomplete", "offboarding_root_mapping_missing")
             return None
-        parents, children = [], ()
+        parents, children, parent_rows = [], (), []
         for process in first.data:
             if root:
                 if process.parent_id != ticket_id:
@@ -482,9 +508,12 @@ class ServiceDesk:
                 ) != kind:
                     raise ReadFailure("invalid", kind + "_parent_template_mismatch")
                 parents.append(process.parent_id)
+                parent_rows.append(parent)
         final = await reader.read(ticket_id)
         if final.status != "ok" or final.data != first.data:
             raise ReadFailure("unstable", kind + "_mapping_changed_during_read")
+        for parent in parent_rows:
+            await self.recheck_lifecycle_ticket(parent)
         parents = tuple(sorted(set(parents)))
         return RelationshipRead(
             parent_id=parents[0] if len(parents) == 1 else None,
@@ -543,6 +572,7 @@ class ServiceDesk:
                         children = onboarding_children(raw)
                         related_roots = (bridge,)
                         source = "onboarding_root_bridge"
+                        await self.recheck_lifecycle_ticket(other, bridge=True)
                     if raw:
                         children = onboarding_children(raw)
                         if ticket_id in children or any(r in children for r in related_roots):
@@ -605,6 +635,38 @@ class ServiceDesk:
                 # identifies a review blocker, never positive process membership.
                 if identifier(row.get("created_by")) in self.lifecycle_creator_ids:
                     raise ReadFailure("incomplete", "n8n_created_ticket_mapping_unconfirmed")
+                if self.lifecycle_creator_coverage_confirmed:
+                    creator = identifier(row.get("created_by"))
+                    template = identifier(row.get("template"))
+                    if creator is None or not re.fullmatch(r"[1-9][0-9]{0,29}", creator):
+                        raise ReadFailure("incomplete", "lifecycle_creator_identity_unknown")
+                    if template is None:
+                        raise ReadFailure("incomplete", "lifecycle_template_identity_unknown")
+                    try:
+                        final = self.validate(
+                            await self.http.get(f"/api/v3/requests/{ticket_id}")
+                        )["request"]
+                        stable = (
+                            str(final["id"]) == ticket_id
+                            and identifier(final.get("created_by")) == creator
+                            and identifier(final.get("template")) == template
+                        )
+                    except Exception:
+                        stable = False
+                    if not stable:
+                        raise ReadFailure("unstable", "lifecycle_creator_changed_during_read")
+                    # The operator confirms all historical children used this
+                    # one account. Another creator excludes child membership;
+                    # the root catalog and positive mappings were checked first.
+                    result = RelationshipRead(
+                        parent_id=None, child_ids=(), process_association="non_lifecycle",
+                        source="confirmed_n8n_creator_coverage", coverage_verified=True,
+                        evidence_ref=stable_id(
+                            "PROCESS-PRODUCER-HISTORY-2026-10-12", ticket_id, creator, template,
+                            *sorted(self.lifecycle_creator_ids),
+                        ),
+                    )
+                    return ok("servicedesk", "relationships", result, self.contract)
                 # Offboarding children live in a separate automation database,
                 # so even a complete onboarding scan cannot establish absence.
                 reason = (

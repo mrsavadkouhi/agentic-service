@@ -13,8 +13,49 @@ from pydantic import SecretStr
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.connectors.http import ReadOnlyHTTP  # noqa: E402
+from app.connectors.http import ReadFailure, ReadOnlyHTTP  # noqa: E402
 from app.connectors.servicedesk import ServiceDesk  # noqa: E402
+from app.contracts.tickets import stable_id  # noqa: E402
+
+HISTORY_ALIAS_PATH = r"/api/v3/requests/[0-9]+/_history"
+
+
+async def compare_history_alias(desk, ticket_id, canonical):
+    """Compare observations; matching aliases never establish source ordering."""
+    result = {
+        "status": "unavailable",
+        "event_count": None,
+        "observation_stable": False,
+        "matches_canonical": False,
+        "comparison_passed": False,
+    }
+    try:
+        if canonical.status != "ok":
+            raise ReadFailure(canonical.status, "canonical_history_unavailable")
+
+        def digests(rows):
+            return {
+                str(row["id"]): stable_id(json.dumps(row, sort_keys=True))
+                for row in rows
+            }
+
+        path = f"/api/v3/requests/{ticket_id}/_history"
+        first = await desk.pages(path, "history")
+        final = await desk.pages(path, "history")
+        observed = digests(first)
+        stable = observed == digests(final)
+        expected = {e.event_id: e.content_digest for e in canonical.data.events}
+        matches = observed == expected
+        result.update(
+            status="ok" if stable else "unstable",
+            event_count=len(first),
+            observation_stable=stable,
+            matches_canonical=matches,
+            comparison_passed=stable and matches,
+        )
+    except Exception as exc:
+        result["status"] = exc.status if isinstance(exc, ReadFailure) else "invalid"
+    return result
 
 
 async def verify(args):
@@ -25,7 +66,8 @@ async def verify(args):
         raise ValueError("Invalid configured origin")
     token = next(h["value"] for h in params["headerParameters"]["parameters"]
                  if h["name"].casefold() == "authtoken")
-    http = ReadOnlyHTTP(f"{url.scheme}://{url.netloc}", SecretStr(token), ServiceDesk.PATHS,
+    paths = ServiceDesk.PATHS + ((HISTORY_ALIAS_PATH,) if args.compare_history_alias else ())
+    http = ReadOnlyHTTP(f"{url.scheme}://{url.netloc}", SecretStr(token), paths,
                         auth_header="authtoken", allow_http=args.allow_http)
     desk = ServiceDesk(http, contract="installed")
     try:
@@ -33,6 +75,10 @@ async def verify(args):
         notes = await desk.notes(args.ticket_id)
         history = await desk.history(args.ticket_id)
         approvals = await desk.approvals(args.ticket_id)
+        alias_comparison = (
+            await compare_history_alias(desk, args.ticket_id, history)
+            if args.compare_history_alias else None
+        )
         final_notes = await desk.notes(args.ticket_id)
         final_history = await desk.history(args.ticket_id)
         final_approvals = await desk.approvals(args.ticket_id)
@@ -56,9 +102,12 @@ async def verify(args):
             and approvals.data.observed_ticket_revision_digest == first.data.revision_digest
         )
         passed = stable and notes_stable and history_stable and approvals_stable and correlated
+        if alias_comparison is not None:
+            passed = passed and alias_comparison["comparison_passed"]
         print(json.dumps({
             "ticket_status": first.status, "notes_status": notes.status,
             "history_status": history.status, "approvals_status": approvals.status,
+            "history_alias_comparison": alias_comparison,
             "ticket_revision_stable": stable,
             "note_observation_stable": notes_stable,
             "history_observation_stable": history_stable,
@@ -100,6 +149,10 @@ def main():
     parser.add_argument("--node", default="Count All")
     parser.add_argument("--ticket-id", required=True)
     parser.add_argument("--allow-http", action="store_true")
+    parser.add_argument(
+        "--compare-history-alias", action="store_true",
+        help="Compare /_history twice with /history; does not verify event ordering",
+    )
     args = parser.parse_args()
     if not re.fullmatch(r"[0-9]{1,30}", args.ticket_id):
         parser.error("Invalid ticket reference")

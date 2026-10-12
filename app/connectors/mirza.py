@@ -118,6 +118,25 @@ def budget(row):
     )
 
 
+def catalog_state(inventory):
+    def permission_fields(row):
+        fields = row.model_dump()
+        # Usage changes continuously. Preserve the last observed spend in the
+        # result, while reconciling identity, grants, expiry and budget policy.
+        fields["budget"].pop("spend")
+        for name in ("team_ids", "models"):
+            if name in fields:
+                fields[name] = tuple(sorted(fields[name]))
+        return fields
+
+    return (
+        {row.user_id: permission_fields(row) for row in inventory.users},
+        {row.team_id: permission_fields(row) for row in inventory.teams},
+        {row.key_ref: permission_fields(row) for row in inventory.keys},
+        frozenset(inventory.served_models),
+    )
+
+
 class Mirza:
     PATHS = (
         r"/team/list",
@@ -182,68 +201,77 @@ class Mirza:
 
     async def inventory(self):
         try:
-            users_raw = await self.pages("/user/list", "users", "page_size")
-            keys_raw = await self.pages("/key/list", "keys", "size")
-            teams_raw = await self.http.get("/team/list")
-            # This installed candidate endpoint is an unpaginated full list; reject
-            # alternate envelopes until their pagination contract is established.
-            if not isinstance(teams_raw, list):
-                raise ReadFailure("incomplete", "team_list_contract")
-            models_raw = await self.http.get("/v1/models")
-            if not isinstance(models_raw, dict) or not isinstance(models_raw.get("data"), list):
-                raise ReadFailure("invalid", "served_models_shape")
-            served = tuple(row["id"] for row in models_raw["data"])
-            teams = tuple(
-                MirzaTeam(
-                    team_id=row["team_id"],
-                    alias=row["team_alias"],
-                    kind="tool"
-                    if row["team_alias"].strip().casefold().endswith(self.tool_suffix.casefold())
-                    else "non_tool",
-                    models=tuple(row["models"]),
-                    budget=budget(row),
-                    reasoning=reasoning(row),
-                )
-                for row in teams_raw
-            )
-            users = tuple(
-                MirzaUser(
-                    user_id=row["user_id"],
-                    email=row.get("user_email"),
-                    team_ids=tuple(row["teams"]),
-                    budget=budget(row),
-                    reasoning=reasoning(row),
-                )
-                for row in users_raw
-            )
-            keys, handles = [], {}
-            now = datetime.now(UTC)
-            for row in keys_raw:
-                token = row["token"]
-                ref = "litellm-key-" + stable_id(token)
-                handles[ref] = SecretStr(token)
-                expires = moment(row.get("expires"))
-                keys.append(
-                    MirzaKey(
-                        key_ref=ref,
-                        owner_id=row.get("user_id") or None,
-                        team_id=row.get("team_id"),
-                        expired=expires is not None and expires <= now,
-                        expires_at=expires,
-                        budget=budget(row),
-                        reasoning=reasoning(row),
-                    )
-                )
-            if len({t.team_id for t in teams}) != len(teams) or len(set(served)) != len(served):
-                raise ReadFailure("invalid", "duplicate_catalog_identity")
-            result = MirzaInventory(
-                users=users, teams=teams, keys=tuple(keys), served_models=served
-            )
-            self._key_handles = handles  # Restricted in-process mapping, never serialized.
-            return ok("mirza", "inventory", result, self.contract)
+            first, _ = await self._read_inventory()
+            current, handles = await self._read_inventory()
+            if catalog_state(first) != catalog_state(current):
+                raise ReadFailure("unstable", "mirza_catalog_changed_during_read")
+            self._key_handles = handles  # Publish only after complete reconciliation.
+            return ok("mirza", "inventory", current, self.contract)
         except Exception as exc:
             self._key_handles.clear()
             return failed("mirza", "inventory", exc)
+
+    async def _read_inventory(self):
+        # Private normalization step; callers use inventory() for reconciled data.
+        # Raw source handles remain in memory and are never part of ReadResult.
+        users_raw = await self.pages("/user/list", "users", "page_size")
+        keys_raw = await self.pages("/key/list", "keys", "size")
+        teams_raw = await self.http.get("/team/list")
+        # This installed candidate endpoint is an unpaginated full list; reject
+        # alternate envelopes until their pagination contract is established.
+        if not isinstance(teams_raw, list):
+            raise ReadFailure("incomplete", "team_list_contract")
+        models_raw = await self.http.get("/v1/models")
+        if not isinstance(models_raw, dict) or not isinstance(models_raw.get("data"), list):
+            raise ReadFailure("invalid", "served_models_shape")
+        served = tuple(row["id"] for row in models_raw["data"])
+        teams = tuple(
+            MirzaTeam(
+                team_id=row["team_id"],
+                alias=row["team_alias"],
+                kind="tool"
+                if row["team_alias"].strip().casefold().endswith(self.tool_suffix.casefold())
+                else "non_tool",
+                models=tuple(row["models"]),
+                budget=budget(row),
+                reasoning=reasoning(row),
+            )
+            for row in teams_raw
+        )
+        users = tuple(
+            MirzaUser(
+                user_id=row["user_id"],
+                email=row.get("user_email"),
+                team_ids=tuple(row["teams"]),
+                budget=budget(row),
+                reasoning=reasoning(row),
+            )
+            for row in users_raw
+        )
+        keys, handles = [], {}
+        now = datetime.now(UTC)
+        for row in keys_raw:
+            token = row["token"]
+            ref = "litellm-key-" + stable_id(token)
+            handles[ref] = SecretStr(token)
+            expires = moment(row.get("expires"))
+            keys.append(
+                MirzaKey(
+                    key_ref=ref,
+                    owner_id=row.get("user_id") or None,
+                    team_id=row.get("team_id"),
+                    expired=expires is not None and expires <= now,
+                    expires_at=expires,
+                    budget=budget(row),
+                    reasoning=reasoning(row),
+                )
+            )
+        if len({t.team_id for t in teams}) != len(teams) or len(set(served)) != len(served):
+            raise ReadFailure("invalid", "duplicate_catalog_identity")
+        result = MirzaInventory(
+            users=users, teams=teams, keys=tuple(keys), served_models=served
+        )
+        return result, handles
 
     async def key(self, key_ref):
         try:
@@ -251,7 +279,17 @@ class Mirza:
             if handle is None:
                 raise ReadFailure("not_found", "unknown_key_reference")
             data = await self.http.get("/key/info", {"key": handle.get_secret_value()})
+            if not isinstance(data, dict) or not isinstance(data.get("info"), dict):
+                raise ReadFailure("invalid", "key_detail_shape")
             row = data["info"]
+            identities = [value for value in (data.get("key"), row.get("token"))
+                          if value is not None]
+            if not identities or any(
+                not isinstance(value, str) or not value for value in identities
+            ):
+                raise ReadFailure("incomplete", "key_identity_unverified")
+            if any(value != handle.get_secret_value() for value in identities):
+                raise ReadFailure("invalid", "key_identity_mismatch")
             expires = moment(row.get("expires"))
             return ok(
                 "mirza",

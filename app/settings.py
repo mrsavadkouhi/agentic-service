@@ -46,6 +46,7 @@ class Settings(BaseSettings):
     servicedesk_lifecycle_creator_ids: tuple[
         Annotated[str, Field(strict=True, pattern=r"^[1-9][0-9]{0,29}$")], ...
     ] = Field(default=(), max_length=20, repr=False)
+    servicedesk_lifecycle_creator_coverage_confirmed: bool = False
     offboarding_database_url: SecretStr | None = None
     onboarding_database_url: SecretStr | None = None
     directory_url: str | None = None
@@ -79,6 +80,10 @@ class Settings(BaseSettings):
             self.servicedesk_lifecycle_creator_ids
         ):
             raise ValueError("Lifecycle creator IDs must be unique")
+        if self.servicedesk_lifecycle_creator_coverage_confirmed and len(
+            self.servicedesk_lifecycle_creator_ids
+        ) != 1:
+            raise ValueError("Historical lifecycle creator coverage requires exactly one account")
         return self
 
     def mode(self, role: WorkerRole) -> OperationMode:

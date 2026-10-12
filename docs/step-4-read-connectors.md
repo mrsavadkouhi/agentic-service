@@ -1,7 +1,7 @@
 # Step 4: read-only integration context
 
-Status on 2026-10-06: connector foundation implemented and locally checked;
-installed Mirza and basic ServiceDesk normalization verified. Step 4 remains in progress because
+Status on 2026-10-12: connector foundation implemented and locally checked;
+installed Mirza and basic ServiceDesk normalization reverified. Step 4 remains in progress because
 ServiceDesk approval-term/history-order/process contracts and complete process
 membership remain pending. Installed directory identity, absence and credential
 denial checks pass, including real department-to-Tool-team resolution. The Mattermost
@@ -27,7 +27,7 @@ context; `grant_context_verified` remains false for this entire implementation.
 |---|---|---|
 | ServiceDesk | Installed ticket/group/template/status/category readers, creation actors/times, note-detail digests/authors, native approval levels/items, structured history actors/status changes, lifecycle roots and children; optional onboarding/offboarding PostgreSQL indexes | Verified history sequence, approval-to-current-terms binding, note-edit correlation, runtime process-index connections and complete membership checks |
 | Directory | Exact unique email, GUID, department and native boolean enabled/unexpired account eligibility through the Mirza adapter; installed positive/absent/auth-denial reads verified | Runtime read configuration; requester authentication/delegation belongs to later authorization |
-| Mirza | Paged users/keys including expired Tool keys, complete team list, served model IDs, budget limit/spend/reset/duration, reasoning metadata | Concurrent catalog reconciliation and production read credential permissions |
+| Mirza | Two-pass reconciliation of paged users/keys including expired Tool keys, complete team list, served models and permission/budget policy; exact identity checks for key-detail reads | Production read credential permissions and runtime configuration; observations are not an atomic snapshot |
 | Mattermost | Verified active `servicedesk_agent` bot, dynamic DWE recipient by exact email; reject deleted accounts and bots, distinguish missing users | Runtime secret configuration and further intended-recipient checks; notification delivery is a later step |
 | Mapping | Versioned operator-approved department map; all 30 approved destinations verified against the current live Tool-team catalog | Check real AD department values; authoritative ticket-note mapping evidence belongs to the clarification workflow |
 
@@ -47,9 +47,25 @@ Each approval read now includes the content/revision digests of the ticket it
 observed. The context rejects an approval read correlated with a different ticket
 snapshot, even when the initial and final ticket reads agree. Missing correlation
 also blocks complete context. These hashes detect changing observations, not what
-the approver saw; `terms_binding_verified` remains false. Materially changed terms
-still require renewed review through the existing approval path. No approval reset,
-restart, self-approval or alternate approval path is implemented.
+the approver saw; `terms_binding_verified` remains false.
+
+On 2026-10-12 the operator confirmed that changed terms require the original
+approver(s)' explicit ticket-note confirmations before reopening. Older approvals
+without a recorded approved-terms snapshot also require confirmation. Unchanged
+terms with a verified approved-terms record need no reconfirmation. Native required
+approval stages remain mandatory; technician clarification does not replace them.
+The local `reconfirmation()` check uses typed original-review, confirmation-note
+and hold/Open evidence. It requires every frozen original reviewer, the exact
+current terms digest, the original approval configuration, attributable current
+note content, and verified ordering after the current hold and before Open.
+It rejects unrelated authors/editors, mismatched tickets/reviews/terms, stale notes,
+duplicate note IDs, missing identities/order, changed configuration and future
+Open events. Inputs are bounded; raw note content and keys are absent.
+This check verifies only reconfirmation evidence. It does not authorize execution,
+reset approvals, enroll a workflow or perform any external write. Live collection
+and executable-intake integration remain pending; source ordering and note-to-terms
+binding are still unverified on the installed server. Existing authority flags
+remain false until those contracts are verified.
 
 ### Lifecycle relationship observations
 
@@ -83,8 +99,9 @@ The supplied examples and existing n8n views establish separate sources:
   semantics remain unverified; it is not silently treated as a ticket link.
 - The optional onboarding index casts only confirmed ID columns to text in its
   fixed SELECT, retains optional/shared children, verifies parent templates and
-  re-reads mappings. It can find children while the packed ServiceDesk field is
-  still absent/stale. Roots without a database row retain the existing packed-field
+  re-reads mappings and the parent ticket's identity/template. It can find children
+  while the packed ServiceDesk field is still absent/stale. Roots without a
+  database row retain the existing packed-field
   fallback, and call-center roots retain their reciprocal bridge. Conflicting
   onboarding/offboarding observations return `ambiguous` rather than choosing one.
 - Offboarding's `Fetch Child Tickets` node reads `automation_id` and child
@@ -107,7 +124,13 @@ The supplied examples and existing n8n views establish separate sources:
   It uses fresh connections, read-only transactions and connection/statement
   timeouts, rejecting malformed references, duplicate parents and self-links.
   Shared children preserve all parents. The ServiceDesk reader checks each
-  parent's offboarding template and re-reads the mapping to detect changes.
+  parent's offboarding template, re-reads the mapping and rechecks the parent's
+  identity/template to detect changes in either source. A failed parent reread
+  invalidates the relationship observation. The call-center bridge also rechecks
+  the related root's identity, template, reciprocal reference and packed children.
+  Unrelated description edits do not invalidate these relationship observations.
+  These checks detect inconsistent reads; they do not establish atomic snapshots
+  or complete lifecycle coverage.
 - The refactored offboarding export upserts a parent, creates child requests,
   collects their responses, then persists their IDs. A child can therefore exist
   before its mapping is visible; two empty lookup results do not establish
@@ -124,12 +147,13 @@ The supplied examples and existing n8n views establish separate sources:
 Native `linked_to_request`, `has_linked_requests`, `has_dependency` and `lifecycle`
 do not expose these business-process relationships in the examples. Arbitrary
 links or keywords remain insufficient. A positive lifecycle observation blocks
-intake explicitly. `coverage_verified` remains false: an offboarding root without
-a configured mapping reader has unknown children, and no match in the two
-sources cannot establish that a ticket is standalone. Complete absence semantics
-and creation/update ordering remain unresolved. The runtime database connection
-is still unconfigured, so default offboarding child reads remain incomplete.
-These are exclusion observations, never permission to process a ticket.
+intake explicitly. Mapping/root observations retain `coverage_verified=false`:
+an offboarding root without a configured mapping reader has unknown children,
+and no match in the two sources does not establish standalone membership.
+The runtime database connection remains unconfigured. A separate, operator-confirmed
+historical creator contract now supports child absence checks as described below;
+empty mappings and waiting age never supply that proof. These checks do not
+authorize Mirza jobs or bypass other intake gates.
 
 Ticket content, structured UDF/resource terms and note text are represented by digests in this operator snapshot;
 raw bodies are not logged or placed in workflow history. Future extraction must
@@ -138,18 +162,27 @@ Native creation actor/time are now observed separately and included in revision
 correlation. All eleven supplied children expose a creator and creation time,
 with one shared creator in this sample. Creator identity alone is not process
 membership. The operator has confirmed n8n-only child creation using a dedicated
-ServiceDesk technician account. Neither sampled creators nor one credential in
-active graphs establishes a
-complete historical producer roster. Unmatched tickets therefore remain
-incomplete, including children awaiting or missing mapping persistence.
+ServiceDesk technician account. On 2026-10-12 the operator confirmed that all
+historical children have always used this same account. The GET-only creator
+probe rechecks all eleven supplied children and observes one stable native
+creator/template identity. A separate ticket from another creator verifies the
+non-lifecycle branch. This historical coverage is operator evidence; samples and
+workflow graphs verify observations, not the whole historical roster.
 
 An optional creator-ID guard returns `incomplete` with
 `n8n_created_ticket_mapping_unconfirmed` for tickets created by a configured
 dedicated producer when no parent mapping is found. Positive relationship
 evidence retains precedence. Creator identity supplies a review blocker, never
-positive process membership or permission to process other creators' tickets.
-Unconfigured producers, other creators and missing creator metadata retain the
-existing fail-closed absence behavior; no waiting deadline makes them eligible.
+positive process membership. With only IDs configured, other creators retain the
+existing incomplete absence result. With explicit historical coverage enabled,
+exactly one account configured, a known non-root template, no positive relationship
+and a stable different native creator, the reader returns `non_lifecycle` with
+`coverage_verified=true`. It rechecks ticket identity, creator and template before
+returning this result. Positive roots/mappings take precedence; missing creator or
+template metadata, changed observations and failed configured source reads remain
+blocked. The context records this verified absence without granting approval
+authority. Unmatched n8n-created tickets stay incomplete even with coverage enabled,
+protecting children created before mapping persistence or left unmapped after failure.
 
 The reader fetches the ticket again after its dependent reads. A changed revision
 invalidates that ticket result. It separately rechecks successful notes, history,
@@ -171,6 +204,21 @@ restricted key-info read; no token, raw key, unrestricted metadata or key-bearin
 nested configuration is returned. Unknown owners remain unknown. Source owner IDs
 are preserved even when they do not match executable catalog-ID syntax; the
 action contracts retain their stricter validation and identity policy.
+
+The inventory reader normalizes two complete catalog passes and compares owner,
+membership, team kind/models, key expiry, reasoning and budget policy. Changed
+permissions or failed second reads return no partial inventory and clear cached
+key handles. Ordering differences do not imply a policy change. Recorded spend
+can change continuously; it is excluded from reconciliation and the second pass's
+spend is retained. Budget limits, reset times and durations remain compared.
+Two matching observations do not prove an atomic cross-service snapshot or rule
+out a change between observations. Future writes must revalidate their targets.
+
+Key-detail reads require the returned native identity to match the cached source
+handle requested. Every present top-level `key` or nested `info.token` must agree;
+missing identity, mismatches and malformed envelopes fail closed. These handles
+are compared in memory, never included in the normalized result. A live read on
+2026-10-12 verifies this contract for one existing key, without revealing its value.
 
 Installed LiteLLM source inspection confirms that omitting the key-list `status`
 and `expires` filters applies no expiry restriction. Its separate session-token
@@ -202,8 +250,12 @@ No production credential has been copied into this project's `.env`.
 verified dedicated n8n ServiceDesk creator IDs, passed only to the API. It
 defaults to `[]`; no real actor ID was persisted here. Entries must be unique
 positive numeric strings, with at most 20 IDs to bound a reviewed historical
-roster. This setting only adds an explicit blocker for unmatched producer-created
-tickets; it never supplies standalone absence proof or grants approval authority.
+roster. IDs alone add only an explicit blocker for unmatched producer-created
+tickets. `AGENTIC_SERVICEDESK_LIFECYCLE_CREATOR_COVERAGE_CONFIRMED` defaults to
+`false`; enabling it requires exactly one configured account and the operator's
+all-history coverage confirmation. It allows the verified different-creator
+absence branch, never an approval grant. Both settings are passed only to the API;
+workers receive neither the native creator ID nor connector credentials.
 
 `AGENTIC_MATTERMOST_BOT_USERNAME` defaults to the operator-confirmed
 `servicedesk_agent`. The reader verifies `GET /api/v4/users/me` is that active
@@ -261,7 +313,7 @@ work. It does not authenticate the requester as that employee or prove delegatio
 
 ## Verification and pending work
 
-- 188 offline agentic unit checks pass, including transport/pagination failure
+- 289 offline agentic unit checks pass on 2026-10-12, including transport/pagination failure
   cases, key sanitization, expired-key fixtures, signed spend, reasoning scope,
   concurrent ticket/structured-term revision detection, native in-charge roles,
   deleted approval observations, unverified history ordering, history prose redaction,
@@ -276,21 +328,33 @@ work. It does not authenticate the requester as that employee or prove delegatio
   remains covered separately with fixtures. Onboarding checks cover all four
   native bigint child columns, optional/shared relationships, missing packed
   fields, wrong/changed parent evidence, denied reads and conflicting process kinds.
+  Mirza regression cases detect changed owners, key teams/expiry/budget policy,
+  team models/reasoning, user memberships and served models between passes; verify
+  ordering/spend-only changes retain the latest spend; reject an unavailable
+  second pass; and verify exact key-detail identity and secret redaction.
+  History-route comparison checks distinguish matching, different, changing,
+  denied and incomplete observations while retaining unverified authority and
+  omitting raw history, identities and credentials from diagnostic output.
 - Seven offline AD identity/packaging checks pass; the existing adapter regression suite
   passes with rendering dependencies present, without skipped renderers.
-- Installed Mirza read normalization passes: 165 users, 91 teams, 70 keys and
-  30 served models. All 30 approved mappings resolve to existing Tool teams.
+- Installed Mirza read normalization passes on 2026-10-12: 168 users, 91 teams,
+  77 keys and 30 served models, reconciled over two complete passes. All 30 approved
+  mappings resolve to existing Tool teams, and one key-detail identity read passes.
+  The earlier 2026-10-06 observation was 165 users, 91 teams and 70 keys.
   The probe uses synthetic identities only to exercise the map against that live
   catalog; it does not establish AD department coverage or employee eligibility.
   No key or employee records were copied locally. The probe
   executes code in memory in the existing container and returns statuses/counts
   only: `scripts/probe_mirza_schema.py --ssh-host mirza-ha1 --container mirza-litellm`.
-- Installed ServiceDesk reads pass: 32 support groups, 134 templates, 7 statuses
+- Installed ServiceDesk reads pass again on 2026-10-12: 32 support groups, 134 templates, 7 statuses
   and 79 categories. Ticket, note, history and approval observations normalize;
   DWE has one native `$GROUP_INCHARGE$` association with an email. No employee
   values, note bodies or ticket descriptions were copied into discovery artifacts.
   [Catalog evidence](servicedesk-catalog.json) records only non-personal IDs and
   the unresolved authority flags.
+  Today's basic probe auto-selected an existing ticket whose approval configuration
+  is unsupported; ticket/note/history/relationship reads pass, but the probe does
+  not verify grant context or supply approval authority.
 - A dedicated approval/history probe inspects actor/time completeness, status
   differences, current approval stages and required configuration. Read-only
   initial samples from both installed Mirza templates normalize successfully.
@@ -307,6 +371,16 @@ work. It does not authenticate the requester as that employee or prove delegatio
   currently observed terms were present when approval was granted. Editing a
   request does not automatically reset approvals, per the operator; manual
   restart capability remains unverified. No approval action was taken.
+- Further 2026-10-12 GET-only inspection finds an approved candidate in each
+  dedicated template within bounded metadata samples of 25 and 23 requests.
+  Both native approval-detail endpoints normalize their envelope and expose
+  comments, acting user and action time. None of the inspected recognized fields
+  (`approved_terms`, request snapshot/revision, content digest or sent content)
+  supplies an approved request snapshot. The corresponding history samples have
+  10 and 8 events, with terminal pagination metadata and IDs, actors and times,
+  but no observed sequence/revision/version field. This is evidence about these
+  samples, not proof that no other installed API/source exists. Approval-term
+  binding and history ordering remain unverified; no authority flags were enabled.
 - Installed relationship checks match both supplied onboarding child sets,
   including the reciprocal call-center root pair. Reverse lookups recognize
   sampled default-template and VOIP children. History reads pass for the sampled
@@ -326,12 +400,89 @@ work. It does not authenticate the requester as that employee or prove delegatio
   existing Tool destination. This is one real department check, not revalidation
   of the whole AD department catalog. Mirza changes are applied personally by the
   operator; no Mirza deployment or external writes were made by this work.
-- Local image packaging, Ruff and both agentic Compose variants pass. The jam
+- Ruff and both agentic Compose variants pass on 2026-10-12 without starting containers.
+  The earlier 2026-10-06 local image packaging check passed. The jam
   Compose structure also validates with environment resolution/interpolation
   disabled; its local `.env` is absent, so this is not a runtime configuration check.
   Image verification uses one isolated container capped at 192 MiB/0.25 CPU with
-  no network; the latest read-connector packaging check peaked at 55.9 MiB. The full runtime
-  stack remains stopped and the disposable check container is removed.
+  no network; that historical packaging check peaked at 55.9 MiB. The updated image
+  has not been rebuilt for today's Python-only connector changes. No containers
+  were started today. The local Docker socket was unavailable during the resource
+  check, so current container state could not be inspected. The earlier disposable
+  check container was removed after verification.
+
+PydanticAI is selected for Step 5's classification, extraction and drafting.
+Steps 1–4 retain their runtime, contracts, deterministic policies and ordinary
+typed read connectors. Agent calls run in Temporal activities and receive scoped,
+bounded projections rather than this full operator context or global inventory.
+Unknown/incomplete/unstable reads and evidence references must survive projection.
+Install and pin the minimal inference dependency with those agents in Step 5;
+no agent package, inference call or additional container is introduced in Step 4.
+
+### Installed documentation access
+
+The operator supplied the installed
+[API documentation page](https://ticket.tapsi.tech/ui/api_documentation) on
+2026-10-12 and authorized reading it with the existing technician key. A GET
+with the `authtoken` header returns HTTP 200 containing a browser login form,
+not the API documentation. The key is accepted by the API on the same HTTPS
+origin. The observed API-key request does not authenticate this UI page; the
+login form does not establish that the key is invalid.
+No password, browser session or alternate credential was collected.
+
+Authenticated `GET /api/v3/requests/_metainfo` succeeds and exposes the installed
+request field schema. Built-in `id` is a read-only `long`, `last_updated_time` a
+read-only `datetime`, and `approval_status` a read-only lookup. `subject` is a
+mandatory string; `description` is HTML, `udf_fields` is a UDF container and
+`resources` has type `unknown`. The inspected built-in fields do not declare a
+request revision, version, source sequence or approved request snapshot.
+A numeric ID's type and read-only flag do not establish chronological ordering.
+The schema does not supply approved terms or a conditional-update contract.
+
+A bounded check of `/api/v3/api_documentation` returns HTTP 404/application code
+4000. Nested `_metainfo` routes for one request's history, notes, approval levels
+and approvals also return 404/code 4000; no undocumented alternative schema is
+assumed. These are route observations, not proof that another documentation or
+schema source is absent. Static schema projections and response codes were
+inspected in memory; no credentials, raw pages or runtime records were saved.
+The operator has no ServiceDesk SSH access. Continue discovery with public vendor
+documentation and authorized installed API reads; SSH is not a prerequisite.
+An authenticated documentation export remains an optional evidence source, rather
+than a requirement to continue development. Unverified authority remains blocked.
+
+### Online vendor references and installed comparison
+
+Reviewed on 2026-10-12, following the operator's
+[resources page](https://www.manageengine.com/products/service-desk/resources.html):
+
+| Primary source | Useful contract information | Limits for this integration |
+|---|---|---|
+| [On-premises REST API guide](https://www.manageengine.com/products/service-desk/sdpop-v3-api/) and [request notes](https://www.manageengine.com/products/service-desk/sdpop-v3-api/requests/request_note.html) | Header-based technician authentication; note authors, creation/update times and updater identity | Not a Build 15100 snapshot; the reviewed on-premises navigation does not include request history or request approval pages |
+| [On-premises release notes](https://www.manageengine.com/products/service-desk/on-premises/readme-new.html) | Build 15100 release dated 2025-06-18; the later Build 15300 section documents SD-140771 history route/envelope/status changes involving `/_history` | A later release's behavior is a candidate to inspect, not a guarantee for the operator-confirmed build |
+| [On-premises request details guide, French edition](https://www.manageengine.com/fr/service-desk/help/adminguide/request_details_page.html) | Chronological/reverse UI history display and manual Submit for Approval action | UI ordering does not guarantee a REST source sequence or resolve equal timestamps; submitting an approval does not establish renewal of existing stages for edited terms |
+
+The resources page also links Cloud API documentation and older PDF guides. Do
+not use Cloud/MSP behavior or a PDF filename containing version 9.0 as evidence
+of Build 15100's approval or history contract. The reviewed sources do not
+establish an immutable approved-terms snapshot or a monotonically ordered REST
+history sequence. Native actor/time observations remain useful but insufficient
+for those claims; do not invent an approval reset operation.
+
+The documented `GET /api/v3/requests/{id}/_history` route was then inspected on
+the installed system. An approved example from each dedicated Mirza template
+returns the same event IDs and content digests as `/history`: 10 and 8 events.
+Both full paged alias reads remain stable, as do the canonical history, ticket,
+note and approval observations. Native configured/current approval stages and
+acting-user/action-time reads pass, with matching observed ticket digests.
+Neither alias comparison verifies source ordering or approved execution terms.
+The runtime connector retains `/history`; there is no automatic route fallback.
+
+`scripts/probe_servicedesk_authority.py --compare-history-alias` provides this
+opt-in comparison without changing the runtime endpoint allowlist. It bounds and
+validates pagination through the existing reader, compares digests in memory,
+and returns only status/count/comparison flags. It fails the diagnostic on changed,
+incomplete, denied or differing alias reads; no raw records or identifiers are
+printed. All execution-authority flags remain false.
 
 The initial automatic approval rejection for the embedded ServiceDesk credential
 was resolved by explicit operator approval on 2026-10-06. The authorized source
@@ -352,11 +503,31 @@ It returns only statuses/counts and authority flags, chooses one existing reques
 when no ticket ID is supplied, and never enrolls or changes that request.
 
 Finish the authoritative history-order, approval-term and process normalizers.
-The employment-rule, onboarding relationship, offboarding database-location and
-Mattermost bot-credential questions are resolved.
-Runtime process-database connectivity and complete membership checks remain gates.
+The employment-rule, onboarding relationship, offboarding database-location,
+Mattermost bot-credential and original-approver reconfirmation policy questions
+are resolved. Live reconfirmation evidence and workflow integration remain pending.
+Runtime process-database connectivity remains required for complete mapping reads.
+Historical creator coverage is now confirmed and live sampled; the runtime account
+ID and coverage setting remain unconfigured. Without that configuration, unmatched
+non-producer tickets still have incomplete lifecycle context.
 Installed directory identity/absence/credential-denial checks are complete.
 Step 4's complete-context exit condition has not yet been met; Step 5 has not begun.
+
+Reproduce the historical creator observation with at least two operator-confirmed
+child IDs (up to 20; pass IDs from both onboarding and offboarding):
+
+```bash
+.venv/bin/python scripts/probe_lifecycle_creator.py \
+  --workflow '../n8n-flows/Views/Onboadring View.json' \
+  --child-ticket-id CHILD_1 --child-ticket-id CHILD_2 \
+  --confirm-historical-creator-coverage
+```
+
+The probe keeps the native creator ID in memory, rechecks sample identities and
+examines at most 25 comparison candidates. It uses complete bounded relationship
+reads for a selected different-creator ticket and prints only counts/statuses/flags.
+The coverage flag records the operator's historical guarantee, not a sample-derived
+inference. It never saves runtime IDs/credentials or performs an external write.
 
 Reproduce the verified directory check:
 
@@ -376,7 +547,7 @@ Inspect an approved Mirza example:
 ```bash
 .venv/bin/python scripts/probe_servicedesk_authority.py \
   --workflow '../n8n-flows/Views/Onboadring View.json' --allow-http \
-  --ticket-id TICKET_ID
+  --ticket-id TICKET_ID --compare-history-alias
 ```
 
 This probe emits only counts, read-stability and authority flags. It does not print

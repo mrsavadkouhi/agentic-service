@@ -161,6 +161,48 @@ class ApprovalRead(Contract):
     observed_ticket_revision_digest: Digest | None = None
 
 
+class ApprovalTermsBaseline(Contract):
+    """Persisted original review identities, never inferred from current ticket terms."""
+
+    ticket_id: Ref
+    approval_ref: Ref
+    configuration_digest: Digest
+    original_approver_ids: tuple[Ref, ...] = Field(min_length=1, max_length=100)
+    approved_terms_digest: Digest | None
+    source_sequence: int | None = Field(default=None, ge=0)
+    identity_verified: bool = Field(strict=True)
+    history_verified: bool = Field(strict=True)
+
+
+class ApprovalTermsNote(Contract):
+    ticket_id: Ref
+    approval_ref: Ref
+    note_id: Ref
+    author_id: Ref
+    updated_by_id: Ref | None = None
+    content_digest: Digest
+    terms_digest: Digest
+    # Event for the currently observed note content, including any note edit.
+    source_sequence: int | None = Field(default=None, ge=0)
+    author_verified: bool = Field(strict=True)
+    terms_verified: bool = Field(strict=True)
+    history_verified: bool = Field(strict=True)
+
+
+class ApprovalReconfirmationRead(Contract):
+    state: Literal["not_required", "awaiting_confirmation", "confirmed", "unverified"]
+    missing_approver_ids: tuple[Ref, ...] = ()
+    note_ids: tuple[Ref, ...] = ()
+    reason_code: Ref
+
+
+class ApprovalReopenRead(Contract):
+    ticket_id: Ref
+    held_sequence: int = Field(ge=0)
+    transition: StatusTransition
+    history_verified: bool = Field(strict=True)
+
+
 class RelationshipRead(Contract):
     parent_id: Ref | None
     # The automation can reference one child from several roots. Preserve all
