@@ -9,14 +9,18 @@ from uuid import uuid4
 from temporalio.client import Client
 from temporalio.worker import Worker
 
+from app.activities.observation import ObservationActivities
 from app.activities.runtime_probe import RuntimeProbeActivities
 from app.activities.tickets import TicketActivities
+from app.connectors.factory import Connectors
 from app.logging import configure_logging
 from app.settings import Settings, WorkerRole
 from app.storage.database import check_database, make_engine
+from app.storage.observations import ObservationRepository
 from app.storage.ticket_repository import TicketRepository
 from app.storage.workers import heartbeat
 from app.worker_health import marker_path
+from app.workflows.observation import ObservationListenerWorkflow, ObservationTicketWorkflow
 from app.workflows.runtime_probe import RuntimeProbeWorkflow
 from app.workflows.tickets import TicketWorkflow
 
@@ -34,6 +38,8 @@ async def serve(settings: Settings, role: WorkerRole) -> None:
     worker_task = None
     health_task = None
     stop_task = None
+    connectors = None
+    observations = None
     path = marker_path(role.value)
 
     async def keep_alive():
@@ -55,11 +61,19 @@ async def serve(settings: Settings, role: WorkerRole) -> None:
             )
             activities = RuntimeProbeActivities(engine, settings, role)
             tickets = TicketActivities(TicketRepository(engine), settings, role)
+            connectors = Connectors(settings)
+            observations = ObservationActivities(
+                ObservationRepository(engine), connectors, settings
+            )
+            observed_activities = ([observations.poll, observations.classify]
+                                   if role == WorkerRole.DISPATCH else [observations.extract])
+            observed_workflows = ([ObservationListenerWorkflow, ObservationTicketWorkflow]
+                                  if role == WorkerRole.DISPATCH else [])
             worker = Worker(
                 client, task_queue=settings.task_queue(role),
-                workflows=[RuntimeProbeWorkflow, TicketWorkflow], activities=[
+                workflows=[RuntimeProbeWorkflow, TicketWorkflow, *observed_workflows], activities=[
                     activities.record, tickets.next_event, tickets.commit, tickets.execute,
-                    tickets.finish, tickets.remind,
+                    tickets.finish, tickets.remind, *observed_activities,
                 ],
                 max_concurrent_activities=2, max_concurrent_workflow_tasks=2,
                 max_cached_workflows=20,
@@ -88,6 +102,10 @@ async def serve(settings: Settings, role: WorkerRole) -> None:
         except Exception:
             logger.warning("Final heartbeat unavailable", extra={"worker_role": role.value})
         path.unlink(missing_ok=True)
+        if observations:
+            await observations.inference.close()
+        if connectors:
+            await connectors.close()
         engine.dispose()
 
 

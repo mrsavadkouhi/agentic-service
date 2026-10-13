@@ -12,12 +12,19 @@ decisions; do not add new jobs or reinterpret approval authority without asking.
 - Step 4 adds optional operator-only read connectors. Its installed authority
   gaps are tracked in `docs/step-4-read-connectors.md`. Keep incomplete context
   distinct from verified approval and never feed it into executable intake as proof.
+  The Step 4 observation handoff is complete; `observation_complete` measures
+  collection only. Enforce unresolved approval/order/write gates in Steps 6–8;
+  Step 5 classification remains observation-only.
 - Temporal owns workflow state. Keep I/O in activities, and make activities
   idempotent before adding privileged actions. PostgreSQL stores projections/audit.
-- PydanticAI is the selected agent framework. Add its minimal pinned inference
-  dependency with Step 5's agents; reuse Pydantic contracts and run agents in
+- PydanticAI is the selected agent framework. Step 5 pins the minimal OpenAI
+  inference package and implements observation agents; reuse Pydantic contracts and run agents in
   Temporal activities. Give agents only explicit scoped read tools and bounded
   sanitized results. Policy checks and privileged writes remain outside agents.
+- Keep observation polling and inference disabled by default. Observation receipts
+  must not enter executable intake or action staging. Durable cache claims prevent
+  retries from repeating uncertain model calls; never erase spend reservations to retry.
+  Runtime model accuracy needs reviewed live examples before activating Step 6.
 - Keep dispatch and Mirza workers on separate task queues. Do not write to Mirza
   database tables directly. Use least-privilege credentials per process later.
 - Do not change ticket templates or assign technicians. Lifecycle process tickets
@@ -32,6 +39,8 @@ decisions; do not add new jobs or reinterpret approval authority without asking.
   require the original approver(s)' verified note confirmations before reopening.
   Preserve native required approvals and original reviewer identities; current
   ticket hashes or technician clarification cannot substitute for terms approval.
+  Use `Approved Mirza terms: <review reference>` bound to the persisted exact
+  terms/cycle/reviewers; matching text alone does not verify ordering or authorize a job.
 - Use Python 3.12, four-space indentation, type hints at service boundaries,
   snake_case names, and explicit dependency pins. Shell uses strict Bash and
   quoted expansions.

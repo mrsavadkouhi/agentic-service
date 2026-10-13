@@ -197,7 +197,7 @@ class TicketSnapshot(Contract):
     template_id: Ref
     category_id: Ref | None
     status: Literal["Open", "On Hold", "Resolved", "Closed", "Cancelled"]
-    source: Literal["email", "servicedesk_ui"]
+    source: Literal["email", "servicedesk_ui", "unknown"]
     source_updated_at: datetime
     content_ref: Ref
     content_digest: Digest

@@ -3,6 +3,18 @@
   "observed_date": "2026-10-06",
   "product_version_operator_confirmed": "15.1 Build 15100",
   "purpose": "Read-only installed catalog evidence; not an executable approval catalog",
+  "read_observation_handoff": {
+    "date": "2026-10-13",
+    "combined_installed_context_verified": true,
+    "observation_complete": true,
+    "recipient_lookup_scope": "dynamic_dwe_contact_probe",
+    "historical_creator_samples": 11,
+    "original_approver_reference_note_format_accepted": true,
+    "history_ordering_verified": false,
+    "approval_authority_verified": false,
+    "grant_context_verified": false,
+    "runtime_secret_configuration_persisted": false
+  },
   "followup_read_observation": {
     "date": "2026-10-12",
     "basic_catalog_counts_match": true,

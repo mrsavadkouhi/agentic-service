@@ -8,20 +8,25 @@ approved Mirza jobs. The confirmed behavior is in [plan.md](plan.md), the
 Steps 2–3 provide the local runtime, authenticated normalized intake, closed ticket
 contracts, deterministic policy gates, durable Temporal execution, action/audit
 records and daily reminder intents. See [Step 3 execution](docs/step-3-execution.md).
-Step 4 adds optional read-only connectors and an operator-only context endpoint;
-installed Mirza and basic ServiceDesk reads are verified. Approval/process
-authority and other live contracts remain pending. See
+Step 4's read-only observation handoff is complete. Optional connectors and an
+operator-only context endpoint assemble typed observations with explicit blockers.
+`observation_complete` measures collection; `grant_context_verified` remains false.
+Approval/order and production write gates remain in Steps 6–8. See
 [read-only integration context](docs/step-4-read-connectors.md).
 Changed Mirza terms and older approvals without a recorded terms snapshot require
 the original approver(s)' explicit note confirmations before reopening. The local
 confirmation check is implemented; live evidence and workflow integration are pending.
+The accepted note syntax is `Approved Mirza terms: <review reference>`, with the
+reference bound to the exact terms, ticket/cycle and original reviewers.
 An optional creator-coverage setting uses the confirmed historical n8n account
 to protect unmapped lifecycle children and rule out children from other creators.
 It defaults to false and requires one verified account ID.
-Classification, provisioning and Mattermost delivery belong to later steps.
-PydanticAI is selected for classification, Mirza request extraction and drafting;
-its inference dependencies and agents will be implemented in Step 5. Existing
-Pydantic contracts, Temporal execution and deterministic policy gates are retained.
+Step 5 implements separate PydanticAI classification and Mirza extraction agents,
+an optional ticket listener, local proposals and clarification drafts. Both
+polling and inference default off. Agents run in Temporal activities with scoped
+read tools; every result has `authorized: false`. Provisioning, ticket updates
+and Mattermost delivery remain later steps. See the
+[observation guide](docs/step-5-observation.md) for configuration and evaluation.
 Local startup needs no production credentials.
 
 ## Start locally
@@ -89,6 +94,7 @@ docker compose config --quiet
 runtime dependencies. The development lock adds the verification tools. Resolve
 and review both locks when changing dependencies. The Docker image includes only
 runtime dependencies and runs as a non-root user with a read-only filesystem.
+Step 5 adds migration `0003_observations`; upgrade before starting the new workers.
 
 `app/workflows` contains deterministic Temporal workflow code. External I/O and
 database writes belong in `app/activities`. `app/storage` holds application audit,

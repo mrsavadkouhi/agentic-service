@@ -111,8 +111,7 @@ class ContextReader:
         mapping = self.mapping.resolve(
             recipient.data if recipient.status == "ok" else None, inventory
         )
-        blockers = []
-        for name, result in (
+        observations = (
             ("ticket", ticket),
             ("groups", groups),
             ("templates", templates),
@@ -120,7 +119,6 @@ class ContextReader:
             ("categories", categories),
             ("notes", notes),
             ("history", history),
-            ("transitions", transitions),
             ("approvals", approvals),
             ("relationships", relationships),
             ("requester", requester),
@@ -128,7 +126,13 @@ class ContextReader:
             ("inventory", inventory),
             ("mattermost_bot", mattermost_bot),
             ("mattermost_recipient", mattermost),
-        ):
+        )
+        observation_blockers = tuple(
+            name + "_" + result.status for name, result in observations
+            if result.status not in {"ok", "not_found"}
+        )
+        blockers = []
+        for name, result in (*observations, ("transitions", transitions)):
             if result.status != "ok":
                 blockers.append(name + "_" + result.status)
         for name, result in (("requester", requester), ("recipient", recipient)):
@@ -218,6 +222,8 @@ class ContextReader:
             mapping=mapping,
             effective_reasoning=reasoning,
             blockers=tuple(blockers),
+            observation_blockers=observation_blockers,
+            observation_complete=not observation_blockers,
             read_complete=not blockers,
             grant_context_verified=False,
         )

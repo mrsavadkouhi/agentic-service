@@ -6,7 +6,7 @@ from typing import Annotated, Generic, Literal, TypeVar
 
 from pydantic import AfterValidator, Field, StringConstraints, model_validator
 
-from app.contracts.tickets import Contract, Digest, Email, Ref, opaque_reference
+from app.contracts.tickets import Contract, Digest, Email, Ref, opaque_reference, stable_id
 
 T = TypeVar("T")
 # Upstream LiteLLM owner IDs need not follow our executable catalog-ID syntax.
@@ -174,6 +174,32 @@ class ApprovalTermsBaseline(Contract):
     history_verified: bool = Field(strict=True)
 
 
+class ApprovalReviewRequest(Contract):
+    """Pinned review terms; the later workflow persists this before notifying humans."""
+
+    ticket_id: Ref
+    approval_ref: Ref
+    cycle_id: Digest
+    terms_digest: Digest
+    configuration_digest: Digest
+    original_approver_ids: tuple[Ref, ...] = Field(min_length=1, max_length=100)
+
+    @model_validator(mode="after")
+    def unique_reviewers(self):
+        if len(set(self.original_approver_ids)) != len(self.original_approver_ids):
+            raise ValueError("Original approver identities must be unique")
+        return self
+
+    def review_ref(self) -> str:
+        return "mirza-review-" + stable_id(
+            self.ticket_id, self.approval_ref, self.cycle_id, self.terms_digest,
+            self.configuration_digest, *sorted(self.original_approver_ids),
+        )
+
+    def confirmation_text(self) -> str:
+        return "Approved Mirza terms: " + self.review_ref()
+
+
 class ApprovalTermsNote(Contract):
     ticket_id: Ref
     approval_ref: Ref
@@ -337,5 +363,8 @@ class TicketContext(Contract):
     mapping: ToolMapping
     effective_reasoning: ReasoningRead | None
     blockers: tuple[Ref, ...]
+    # Collection completeness is separate from source authority and job eligibility.
+    observation_blockers: tuple[Ref, ...] = ()
+    observation_complete: bool = False
     read_complete: bool
-    grant_context_verified: bool = False
+    grant_context_verified: Literal[False] = False

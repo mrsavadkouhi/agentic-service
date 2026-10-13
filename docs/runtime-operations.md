@@ -12,6 +12,9 @@ can execute synthetic database effects. No mode enables a production write
 connector. Check `/runtime`, which reports `external_write_capabilities: []` and
 the synthetic connector switch. See [Step 3](step-3-execution.md) for authenticated
 intake, revision-checked cancellation, action recovery and reminder intent semantics.
+Step 5 adds an observation-only listener and two PydanticAI agents. Their switches
+default off and introduce no production writes. See
+[Step 5 operations and evaluation](step-5-observation.md).
 
 Each role has its own task queue and `AGENTIC_DISPATCH_PAUSED` or
 `AGENTIC_MIRZA_PAUSED` setting. A paused worker keeps a paused heartbeat but polls
@@ -45,6 +48,8 @@ Readiness requires the expected schema revision. Startup does not call
 `create_all`. Review downgrade/data-loss behavior before using a downgrade; take
 a backup first. Temporal schemas are managed by the pinned Temporal setup image,
 not by application Alembic migrations.
+The current application revision is `0003_observations`. It adds local proposals
+and daily inference reservations; downgrading removes those two tables.
 
 ## Backups and restore
 

@@ -1,12 +1,22 @@
 # Step 4: read-only integration context
 
-Status on 2026-10-12: connector foundation implemented and locally checked;
-installed Mirza and basic ServiceDesk normalization reverified. Step 4 remains in progress because
-ServiceDesk approval-term/history-order/process contracts and complete process
-membership remain pending. Installed directory identity, absence and credential
-denial checks pass, including real department-to-Tool-team resolution. The Mattermost
-bot identity and dynamic DWE recipient lookup are verified. The AD
-eligibility policy is confirmed: unique email, enabled account, unexpired account.
+Status on 2026-10-13: complete for the read-only observation handoff. The combined
+installed context probe passes across ServiceDesk, directory, Mirza, Mattermost and
+Tool-team mapping. `observation_complete=true` reports source collection;
+`read_complete=false` and `grant_context_verified=false` preserve the approval/order
+blockers. Step 5 can proceed in observation mode. No production write is enabled.
+
+The phase boundary is clarified in `plan.md`: Step 4 finishes typed observation
+collection, including explicit unknown authority; Steps 6–8 must enforce and verify
+approval/order, concurrency and idempotency before production writes. The former
+execution-ready-context prerequisite is not required for observation-only Step 5.
+Runtime read secrets and optional process-index connections remain rollout settings;
+unconfigured or incomplete sources still return explicit blockers. Operator approval,
+lifecycle exclusions and the eight-job allowlist remain unchanged.
+
+Installed directory identity/absence/auth-denial checks, eligible department-to-Tool
+mapping and the Mattermost bot/dynamic DWE lookup are verified. Eligibility means
+exact unique email, enabled account and unexpired account.
 
 ## Implemented surface
 
@@ -20,8 +30,11 @@ or approval evidence. Optional `key_ref` accepts only a generated
 Each component returns a typed result, observation time, evidence digest,
 contract provenance and completeness flag. Missing, ambiguous, unsupported,
 unavailable, partial and concurrently changed reads have distinct outcomes.
-Unavailability never means an empty inventory. `blockers` explains incomplete
-context; `grant_context_verified` remains false for this entire implementation.
+Unavailability never means an empty inventory. `observation_blockers` and
+`observation_complete` distinguish missing/partial collection from observed data.
+Verified `not_found` identity outcomes are complete observations, never eligible
+recipients. `blockers` and `read_complete` retain stricter execution-context checks;
+`grant_context_verified` is constrained to false for this implementation.
 
 | Component | Read behavior | Remaining installed verification |
 |---|---|---|
@@ -54,6 +67,16 @@ approver(s)' explicit ticket-note confirmations before reopening. Older approval
 without a recorded approved-terms snapshot also require confirmation. Unchanged
 terms with a verified approved-terms record need no reconfirmation. Native required
 approval stages remain mandatory; technician clarification does not replace them.
+The accepted note is `Approved Mirza terms: <review reference>`. The immutable
+`ApprovalReviewRequest` binds that reference to the ticket, original review,
+review cycle, exact terms, configuration and original reviewers. The bot will show
+those exact terms before asking for the note; sending/persisting the review belongs
+to Step 7. `confirmation_notes()` reads native note details twice, matches the exact
+visible plaintext/basic HTML note, checks author/editor attribution and returns
+only sanitized digests/identities. It rejects changed observations and cross-ticket
+reviews. Extra terms, denials, hidden/active markup and malformed notes do not match.
+No raw note text is returned; note source order remains unknown and is never fabricated.
+
 The local `reconfirmation()` check uses typed original-review, confirmation-note
 and hold/Open evidence. It requires every frozen original reviewer, the exact
 current terms digest, the original approval configuration, attributable current
@@ -61,7 +84,7 @@ note content, and verified ordering after the current hold and before Open.
 It rejects unrelated authors/editors, mismatched tickets/reviews/terms, stale notes,
 duplicate note IDs, missing identities/order, changed configuration and future
 Open events. Inputs are bounded; raw note content and keys are absent.
-This check verifies only reconfirmation evidence. It does not authorize execution,
+These checks verify only their stated evidence. They do not authorize execution,
 reset approvals, enroll a workflow or perform any external write. Live collection
 and executable-intake integration remain pending; source ordering and note-to-terms
 binding are still unverified on the installed server. Existing authority flags
@@ -241,21 +264,23 @@ updates the shared map or creates a team. The approved map remains unchanged.
 
 ## Configuration and boundaries
 
-All four read connectors are disabled by default. The API process alone receives
+All four read connectors are disabled by default. In the Step 4 configuration the API alone received
 the optional `AGENTIC_{SERVICEDESK,DIRECTORY,MIRZA,MATTERMOST}_URL` and corresponding
-`*_READ_TOKEN` settings. Workers do not receive these credentials from Compose.
+`*_READ_TOKEN` settings. Step 5 also supplies ServiceDesk/process-index reads to
+both workers and directory/Mirza reads to the extraction worker. Workers receive
+no Mattermost token. See [Step 5](step-5-observation.md) for process scoping.
 No production credential has been copied into this project's `.env`.
 
 `AGENTIC_SERVICEDESK_LIFECYCLE_CREATOR_IDS` is an optional JSON list of native,
-verified dedicated n8n ServiceDesk creator IDs, passed only to the API. It
+verified dedicated n8n ServiceDesk creator IDs. Step 5 passes these to the API and both workers. It
 defaults to `[]`; no real actor ID was persisted here. Entries must be unique
 positive numeric strings, with at most 20 IDs to bound a reviewed historical
 roster. IDs alone add only an explicit blocker for unmatched producer-created
 tickets. `AGENTIC_SERVICEDESK_LIFECYCLE_CREATOR_COVERAGE_CONFIRMED` defaults to
 `false`; enabling it requires exactly one configured account and the operator's
 all-history coverage confirmation. It allows the verified different-creator
-absence branch, never an approval grant. Both settings are passed only to the API;
-workers receive neither the native creator ID nor connector credentials.
+absence branch, never an approval grant. Both settings now accompany ServiceDesk
+read configuration in the API and observation workers.
 
 `AGENTIC_MATTERMOST_BOT_USERNAME` defaults to the operator-confirmed
 `servicedesk_agent`. The reader verifies `GET /api/v4/users/me` is that active
@@ -313,7 +338,18 @@ work. It does not authenticate the requester as that employee or prove delegatio
 
 ## Verification and pending work
 
-- 289 offline agentic unit checks pass on 2026-10-12, including transport/pagination failure
+- The 2026-10-13 combined installed context probe passes with complete observation
+  collection, a verified mapped Tool destination and the dynamic DWE contact lookup.
+  It preserves `transitions_unsupported`, `history_order_unverified` and
+  `approval_authority_unverified`; execution authority remains false. All eleven
+  child samples retain one stable creator. ServiceDesk basic/catalog reads pass.
+  Mirza's fresh two-pass read has 168 users, 92 teams, 78 keys and 30 models; all
+  30 approved Tool destinations and the key-detail identity read pass.
+  The context uses the dynamic DWE contact as an explicit recipient lookup probe,
+  not as proof of the ticket's approved beneficiary. Normalized directory/catalog
+  data cross a captured encrypted SSH pipe in memory; remote master credentials
+  stay remote. No raw records, key values or bot token are printed or persisted.
+- 338 offline agentic unit checks pass on 2026-10-13, including transport/pagination failure
   cases, key sanitization, expired-key fixtures, signed spend, reasoning scope,
   concurrent ticket/structured-term revision detection, native in-charge roles,
   deleted approval observations, unverified history ordering, history prose redaction,
@@ -335,6 +371,11 @@ work. It does not authenticate the requester as that employee or prove delegatio
   History-route comparison checks distinguish matching, different, changing,
   denied and incomplete observations while retaining unverified authority and
   omitting raw history, identities and credentials from diagnostic output.
+  Completion checks cover exact confirmation syntax, cycle/ticket/terms/configuration/
+  reviewer binding, author/editor and changed-note rejection, bounded HTML parsing,
+  source completeness versus execution gates, and private SSH result validation.
+  The full suite took 1.92 seconds and peaked at 139 MiB RSS; no local Docker stack
+  was started. Ruff, both Compose configuration checks and catalog JSON validation pass.
 - Seven offline AD identity/packaging checks pass; the existing adapter regression suite
   passes with rendering dependencies present, without skipped renderers.
 - Installed Mirza read normalization passes on 2026-10-12: 168 users, 91 teams,
@@ -502,7 +543,8 @@ Reproduce the permitted basic read probe from the repository root:
 It returns only statuses/counts and authority flags, chooses one existing request
 when no ticket ID is supplied, and never enrolls or changes that request.
 
-Finish the authoritative history-order, approval-term and process normalizers.
+In Steps 6–8, finish and verify authoritative status/note ordering, approval-term
+proofs and write recovery before activation; unsupported sources must remain blocked.
 The employment-rule, onboarding relationship, offboarding database-location,
 Mattermost bot-credential and original-approver reconfirmation policy questions
 are resolved. Live reconfirmation evidence and workflow integration remain pending.
@@ -511,7 +553,25 @@ Historical creator coverage is now confirmed and live sampled; the runtime accou
 ID and coverage setting remain unconfigured. Without that configuration, unmatched
 non-producer tickets still have incomplete lifecycle context.
 Installed directory identity/absence/credential-denial checks are complete.
-Step 4's complete-context exit condition has not yet been met; Step 5 has not begun.
+Step 4's read-only observation exit is verified. Step 5's observation implementation
+is documented separately; production
+authority and write gates remain in Steps 6–8 and are not satisfied by this handoff.
+
+Reproduce the combined read-only snapshot with an in-memory bot token:
+
+```bash
+read -rsp 'Mattermost bot read token: ' probe_mattermost_token
+printf '%s\n' "$probe_mattermost_token" | \
+  .venv/bin/python scripts/probe_context_snapshot.py \
+    --workflow '../n8n-flows/Views/Onboadring View.json' --ssh-host mirza-ha1 \
+    --child-ticket-id CHILD_1 --child-ticket-id CHILD_2 \
+    --confirm-historical-creator-coverage
+unset probe_mattermost_token
+```
+
+Use operator-confirmed children from onboarding and offboarding. This selects
+one Mirza Access Request from at most 25 candidates and returns only status flags,
+with no workflow enrollment or external writes. It never saves the snapshot or secrets.
 
 Reproduce the historical creator observation with at least two operator-confirmed
 child IDs (up to 20; pass IDs from both onboarding and offboarding):

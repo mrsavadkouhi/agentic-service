@@ -11,15 +11,19 @@ from fastapi.responses import JSONResponse
 from pydantic import TypeAdapter
 from temporalio.api.workflowservice.v1 import DescribeNamespaceRequest
 from temporalio.client import Client
+from temporalio.common import WorkflowIDConflictPolicy
 
 from app import __version__
 from app.api.intake import authorize, configured_catalog, deliver_notifications, router
 from app.connectors.factory import Connectors
-from app.contracts.tickets import Email
+from app.contracts.observation import ObservationStart, PollStart
+from app.contracts.tickets import Email, stable_id
 from app.logging import configure_logging, correlation_id
 from app.settings import Settings, WorkerRole
 from app.storage.database import check_database, make_engine, worker_is_ready
+from app.storage.observations import ObservationRepository
 from app.storage.ticket_repository import TicketRepository
+from app.workflows.observation import ObservationListenerWorkflow, ObservationTicketWorkflow
 
 logger = logging.getLogger(__name__)
 
@@ -35,11 +39,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             config.temporal_address, namespace=config.temporal_namespace, lazy=True
         )
         app.state.tickets = TicketRepository(app.state.engine)
+        app.state.observations = ObservationRepository(app.state.engine)
         delivery = None
         connectors = None
         try:
             connectors = Connectors(config)
             app.state.connectors = connectors
+            if config.observation_listener_enabled:
+                await app.state.temporal.start_workflow(
+                    ObservationListenerWorkflow.run,
+                    PollStart(config.dispatch_task_queue, config.mirza_task_queue,
+                              config.observation_poll_seconds, config.observation_batch_size),
+                    id="observation-listener-servicedesk", task_queue=config.dispatch_task_queue,
+                    id_conflict_policy=WorkflowIDConflictPolicy.USE_EXISTING,
+                )
             catalog = configured_catalog(config)
             if catalog:
                 await asyncio.to_thread(app.state.tickets.seed_catalog, catalog)
@@ -62,6 +75,30 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(title="ICT workflow runtime", version=__version__, lifespan=lifespan)
     app.include_router(router(config))
+
+    @app.post("/v1/observations/{ticket_id}", status_code=202)
+    async def start_observation(ticket_id: str, request: Request):
+        authorize(request, config.operator_token)
+        if not re.fullmatch(r"[1-9][0-9]{0,29}", ticket_id):
+            raise HTTPException(422, "Invalid ticket reference")
+        owner_id = "observation-" + stable_id("servicedesk", ticket_id)
+        await request.app.state.temporal.start_workflow(
+            ObservationTicketWorkflow.run,
+            ObservationStart("servicedesk", ticket_id,
+                             config.dispatch_task_queue, config.mirza_task_queue),
+            id=owner_id, task_queue=config.dispatch_task_queue,
+            id_conflict_policy=WorkflowIDConflictPolicy.USE_EXISTING, start_signal="wake",
+        )
+        return {"workflow_id": owner_id, "mode": "observe", "external_write_capabilities": []}
+
+    @app.get("/v1/observations/{ticket_id}")
+    async def read_observations(ticket_id: str, request: Request):
+        authorize(request, config.operator_token)
+        if not re.fullmatch(r"[1-9][0-9]{0,29}", ticket_id):
+            raise HTTPException(422, "Invalid ticket reference")
+        return await asyncio.to_thread(
+            request.app.state.observations.latest, "servicedesk", ticket_id
+        )
 
     @app.get("/v1/contexts/{ticket_id}")
     async def context(
@@ -172,9 +209,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "external_write_capabilities": [],
             "registered_workflow": "RuntimeProbeWorkflow",
             "ticket_contracts_implemented": True,
-            "registered_workflows": ["RuntimeProbeWorkflow", "TicketWorkflow"],
+            "registered_workflows": ["RuntimeProbeWorkflow", "TicketWorkflow",
+                                     "ObservationListenerWorkflow", "ObservationTicketWorkflow"],
             "synthetic_connector_enabled": config.enable_fixture_execution,
             "read_only_connectors_implemented": True,
+            "read_observation_handoff_implemented": True,
+            "production_execution_authority_verified": False,
+            "observation_listener_enabled": config.observation_listener_enabled,
+            "typed_observation_agents_implemented": True,
+            "inference_enabled": config.inference_enabled or config.worker_inference_enabled,
         }
 
     return app

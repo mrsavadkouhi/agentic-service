@@ -4,12 +4,15 @@ import json
 import re
 from datetime import UTC, datetime
 
+from app.connectors.confirmation import matches_confirmation
 from app.connectors.http import ReadFailure, failed, ok
 from app.connectors.lifecycle import mentions_onboarding_child, onboarding_children
 from app.contracts.context import (
     ApprovalObservation,
     ApprovalRead,
+    ApprovalReviewRequest,
     ApprovalStage,
+    ApprovalTermsNote,
     DeskCatalogItem,
     DeskGroup,
     DeskHistoryEvent,
@@ -282,33 +285,74 @@ class ServiceDesk:
         except Exception as exc:
             return failed("servicedesk", "ticket", exc)
 
+    async def _note_records(self, ticket_id, *, max_records=None, max_content_bytes=None):
+        rows = await self.pages(f"/api/v3/requests/{ticket_id}/notes", "notes")
+        if max_records is not None and len(rows) > max_records:
+            raise ReadFailure("incomplete", "observation_note_count_limit")
+        records = []
+        content_bytes = 0
+        for listed in rows:
+            row = self.validate(
+                await self.http.get(f"/api/v3/requests/{ticket_id}/notes/{listed['id']}")
+            )["note"]
+            if str(row["id"]) != str(listed["id"]):
+                raise ReadFailure("invalid", "note_identity_mismatch")
+            if not isinstance(row.get("description"), str):
+                raise ReadFailure("invalid", "note_description_missing")
+            content_bytes += len(row["description"].encode())
+            if max_content_bytes is not None and content_bytes > max_content_bytes:
+                raise ReadFailure("incomplete", "observation_note_content_limit")
+            if identifier(row.get("request")) != ticket_id:
+                raise ReadFailure("invalid", "note_request_mismatch")
+            note = DeskNote(
+                note_id=str(row["id"]),
+                author_id=identifier(row.get("added_by")),
+                updated_by_id=identifier(row.get("last_updated_by")),
+                added_at=timestamp(row.get("added_time")),
+                updated_at=timestamp(row.get("last_updated_time")),
+                content_digest=stable_id(row["description"]),
+            )
+            records.append((note, row["description"]))
+        return tuple(records)
+
     async def notes(self, ticket_id):
         try:
-            rows = await self.pages(f"/api/v3/requests/{ticket_id}/notes", "notes")
-            notes = []
-            for listed in rows:
-                row = self.validate(
-                    await self.http.get(f"/api/v3/requests/{ticket_id}/notes/{listed['id']}")
-                )["note"]
-                if str(row["id"]) != str(listed["id"]):
-                    raise ReadFailure("invalid", "note_identity_mismatch")
-                if "description" not in row:
-                    raise ReadFailure("invalid", "note_description_missing")
-                if identifier(row.get("request")) != ticket_id:
-                    raise ReadFailure("invalid", "note_request_mismatch")
-                notes.append(
-                    DeskNote(
-                        note_id=str(row["id"]),
-                        author_id=identifier(row.get("added_by")),
-                        updated_by_id=identifier(row.get("last_updated_by")),
-                        added_at=timestamp(row.get("added_time")),
-                        updated_at=timestamp(row.get("last_updated_time")),
-                        content_digest=stable_id(str(row["description"])),
-                    )
-                )
-            return ok("servicedesk", "notes", tuple(notes), self.contract)
+            records = await self._note_records(ticket_id)
+            return ok("servicedesk", "notes", tuple(n for n, _ in records), self.contract)
         except Exception as exc:
             return failed("servicedesk", "notes", exc)
+
+    async def confirmation_notes(self, ticket_id, review: ApprovalReviewRequest):
+        try:
+            if review.ticket_id != ticket_id:
+                raise ReadFailure("invalid", "confirmation_review_ticket_mismatch")
+            first = await self._note_records(ticket_id)
+            final = await self._note_records(ticket_id)
+            if tuple(n for n, _ in first) != tuple(n for n, _ in final):
+                raise ReadFailure("unstable", "confirmation_notes_changed_during_read")
+            matched = []
+            for note, body in final:
+                if not matches_confirmation(body, review):
+                    continue
+                if note.author_id is None:
+                    raise ReadFailure("incomplete", "confirmation_note_author_unknown")
+                matched.append(ApprovalTermsNote(
+                    ticket_id=ticket_id, approval_ref=review.approval_ref,
+                    note_id=note.note_id, author_id=note.author_id,
+                    updated_by_id=note.updated_by_id, content_digest=note.content_digest,
+                    terms_digest=review.terms_digest, terms_verified=True,
+                    author_verified=(
+                        note.author_id in review.original_approver_ids
+                        and note.updated_by_id in {None, note.author_id}
+                        and (note.updated_at is None or note.updated_by_id == note.author_id)
+                    ),
+                    history_verified=False,
+                ))
+                if len(matched) > 100:
+                    raise ReadFailure("incomplete", "confirmation_note_limit")
+            return ok("servicedesk", "confirmation_notes", tuple(matched), self.contract)
+        except Exception as exc:
+            return failed("servicedesk", "confirmation_notes", exc)
 
     async def history(self, ticket_id):
         try:

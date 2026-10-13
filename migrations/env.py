@@ -1,7 +1,10 @@
 from alembic import context
 
 from app.settings import Settings
-from app.storage import tickets  # noqa: F401 -- register ticket tables for migrations
+from app.storage import (
+    observations,  # noqa: F401 -- register observation tables
+    tickets,  # noqa: F401 -- register ticket tables for migrations
+)
 from app.storage.database import make_engine
 from app.storage.models import Base
 
