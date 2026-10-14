@@ -4,8 +4,10 @@ annotated-doc==0.0.5
 annotated-types==0.8.0
 anyio==4.15.1
 certifi==2026.7.22
+cffi==2.1.1
 charset-normalizer==3.5.2
 click==8.5.0
+cryptography==50.0.2
 fastapi==0.142.2
 genai-prices==0.1.11
 griffelib==2.3.2
@@ -26,6 +28,7 @@ packaging==26.3
 protobuf==7.36.2
 psycopg==3.3.6
 psycopg-binary==3.3.6
+pycparser==3.11
 pydantic==2.13.5
 pydantic-ai-slim==2.55.0
 pydantic-graph==2.55.0

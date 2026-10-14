@@ -36,6 +36,10 @@ Step 7 adds durable, operator-only Mirza access/approval previews on the Mirza
 queue. Packages calculate exact scopes and minimal changes; approval observations
 remain distinct from verified terms. No provisioning or delivery is enabled. See
 [Mirza policy review](docs/step-7-mirza-policy.md).
+Step 8 adds a persistent, network-free fulfillment simulator for all eight jobs,
+encrypted owner-only key delivery, staff notifications and resolution. Native
+provisioning and delivery remain disabled. See
+[provisioning and recovery](docs/step-8-provisioning.md).
 
 ## Start locally
 
@@ -106,7 +110,7 @@ docker compose config --quiet
 runtime dependencies. The development lock adds the verification tools. Resolve
 and review both locks when changing dependencies. The Docker image includes only
 runtime dependencies and runs as a non-root user with a read-only filesystem.
-Step 7 adds migration `0004_mirza_reviews`; upgrade before starting the new workers.
+Step 8 adds migration `0005_provisioning_fixtures`; upgrade before starting workers.
 
 `app/workflows` contains deterministic Temporal workflow code. External I/O and
 database writes belong in `app/activities`. `app/storage` holds application audit,

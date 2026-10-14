@@ -27,7 +27,14 @@ decisions; do not add new jobs or reinterpret approval authority without asking.
   tables. The first approval observation is not a verified approved-terms baseline.
   Preserve original reviewers and DWE identity pins; native source sequence and
   approved-term authority remain unverified. Do not infer them from a note match.
-  Provisioning, ticket updates and notification delivery remain Step 8 work.
+  Native provisioning, ticket updates and notification delivery remain disabled.
+- Step 8 implements only the network-free fulfillment simulator. Its dedicated
+  fixture tables, generated tenant prefix and `.invalid` identities cannot serve
+  as native execution authority. Keep raw generated keys in the private cipher/
+  owner-delivery boundary, indexed activity receipts stable, and uncertain effects
+  blocked without positive downstream evidence. Do not expose fixture seeding as
+  an API or register a native writer based on a simulation pass. Temporary non-key
+  grants remain blocked until safe ownership/expiry handling exists in Step 9.
 - Temporal owns workflow state. Keep I/O in activities, and make activities
   idempotent before adding privileged actions. PostgreSQL stores projections/audit.
 - PydanticAI is the selected agent framework. Step 5 pins the minimal OpenAI

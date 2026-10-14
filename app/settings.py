@@ -41,6 +41,8 @@ class Settings(BaseSettings):
     catalog_file: Path | None = None
     enable_fixture_execution: bool = False
     fixture_lose_response_once: bool = False
+    enable_fixture_provisioning: bool = False
+    fixture_vault_key_file: Path | None = None
     servicedesk_url: str | None = None
     servicedesk_read_token: SecretStr | None = None
     servicedesk_lifecycle_creator_ids: tuple[
@@ -98,6 +100,17 @@ class Settings(BaseSettings):
                 raise ValueError("API credentials require at least 32 characters")
         if self.fixture_lose_response_once and not self.enable_fixture_execution:
             raise ValueError("Fault injection requires the synthetic connector")
+        if self.enable_fixture_provisioning:
+            from urllib.parse import urlsplit
+
+            database = urlsplit(self.database_url.get_secret_value())
+            if (not self.enable_fixture_execution or self.mirza_mode != OperationMode.AUTOMATIC
+                    or self.fixture_vault_key_file is None
+                    or database.hostname not in {"postgres", "localhost", "127.0.0.1", "::1"}
+                    or database.path != "/agentic" or self.temporal_namespace != "agentic"
+                    or self.inference_enabled or self.worker_inference_enabled
+                    or self.observation_listener_enabled):
+                raise ValueError("Provisioning simulation requires the local fixture setup")
         if len(set(self.servicedesk_lifecycle_creator_ids)) != len(
             self.servicedesk_lifecycle_creator_ids
         ):

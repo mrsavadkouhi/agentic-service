@@ -4,6 +4,7 @@ from app.settings import Settings
 from app.storage import (
     mirza_reviews,  # noqa: F401 -- register isolated Mirza policy previews
     observations,  # noqa: F401 -- register observation tables
+    provisioning,  # noqa: F401 -- register synthetic provisioning tables
     tickets,  # noqa: F401 -- register ticket tables for migrations
 )
 from app.storage.database import make_engine

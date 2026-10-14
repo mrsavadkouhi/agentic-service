@@ -17,6 +17,10 @@ default off and introduce no production writes. See
 [Step 5 operations and evaluation](step-5-observation.md).
 Step 7 adds isolated policy previews and pinned reviewer state, still without
 write connectors. See [Mirza policy review](step-7-mirza-policy.md).
+Step 8 supplies a private, explicitly enabled local fulfillment simulator. It
+accepts only generated synthetic authority and `.invalid` recipients, stores
+private key/post data encrypted, and never enables a native connector. See
+[provisioning and recovery](step-8-provisioning.md).
 
 Each role has its own task queue and `AGENTIC_DISPATCH_PAUSED` or
 `AGENTIC_MIRZA_PAUSED` setting. A paused worker keeps a paused heartbeat but polls
@@ -50,9 +54,12 @@ Readiness requires the expected schema revision. Startup does not call
 `create_all`. Review downgrade/data-loss behavior before using a downgrade; take
 a backup first. Temporal schemas are managed by the pinned Temporal setup image,
 not by application Alembic migrations.
-The current application revision is `0004_mirza_reviews`. It adds isolated Mirza
-policy previews and pinned review heads. Downgrading to `0003_observations` removes
-only those two new tables; observation and business data remain intact.
+The current application revision is `0005_provisioning_fixtures`. It adds five
+isolated fixture fulfillment/claim/secret/message tables. Downgrading to
+`0004_mirza_reviews` removes their synthetic data and ciphertexts; review,
+observation and business tables remain intact. Keep private verification state
+and its vault key after a failed check; success removes only that run's temporary
+files after its workflows finish. This is not production credential retention.
 
 ## Backups and restore
 

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.settings import Settings, WorkerRole
 from app.storage.models import RuntimeWorker
 
-SCHEMA_REVISION = "0004_mirza_reviews"
+SCHEMA_REVISION = "0005_provisioning_fixtures"
 
 
 def make_engine(settings: Settings) -> Engine:

@@ -765,6 +765,38 @@ including unauthorized approvals and attempts to change recipients or budgets.
 
 ## Step 8 — Implement Mirza provisioning and secure delivery
 
+**Local fulfillment milestone (2026-10-14):** A separate Mirza-queue workflow and
+privileged fixture activity now implement all eight jobs, supporting new Tool-team
+creation, encrypted key/post storage, owner/staff delivery and Resolved status.
+Indexed durable commands reconcile lost responses without advancing/repeating
+the effect. Scope, approval, lifecycle, recipient and effective-access checks run
+before side effects; uncertain outcomes without positive receipts stop. Native
+connectors and production activation remain disabled. See
+[Step 8 provisioning](docs/step-8-provisioning.md).
+
+- [x] Implement the eight-job mutation boundary with a persistent network-free
+      simulator and isolated fixture-only authority. Preserve explicit team/key/
+      person scopes and exclude key ACLs, key moves and personal model-list writes.
+- [x] Preserve unrelated metadata, memberships, models, spend/reset and larger
+      limits; fold legacy reasoning grants and preserve higher effective ceilings.
+- [x] Implement durable indexed claims, correlated team/key recovery and encrypted
+      secret delivery to the named owner. Missing secret/receipt evidence prevents
+      regeneration or blind retries. Notification retries reuse their delivery IDs.
+- [x] Simulate staff completion and Resolved status after read-back/effective checks.
+      Use the current technician or pinned original DWE contact; preserve all
+      group/template/technician fields. Revalidate lifecycle and approval before effects.
+- [x] Verify nine native PostgreSQL/Temporal simulations across restart/replay and
+      lost mutation responses, plus concurrent model-union preservation. Check
+      secrets/history isolation and unchanged business inbox/actions. All 536
+      offline cases, lint, migration, dependency and Compose checks pass.
+- [ ] Add an installed, protected native administration/delivery adapter after
+      approval/history, concurrency, reconciliation and secret-custody contracts
+      are verified. The local simulator does not establish those guarantees.
+
+The original production checklist below remains the activation requirement; its
+unchecked items are not satisfied by fixture writes. Temporary non-key grants
+stop with `managed_expiry_unavailable` until Step 9 implements safe expiry.
+
 - [ ] Introduce narrow internal administration operations implementing the eight
       supported jobs, read-back, and effective-access checks. Supporting membership
       changes during key creation are owner/Tool membership only; non-Tool user

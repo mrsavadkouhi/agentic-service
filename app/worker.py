@@ -11,6 +11,7 @@ from temporalio.worker import Worker
 
 from app.activities.mirza_review import MirzaReviewActivities
 from app.activities.observation import ObservationActivities
+from app.activities.provisioning import ProvisioningActivities
 from app.activities.runtime_probe import RuntimeProbeActivities
 from app.activities.tickets import TicketActivities
 from app.connectors.factory import Connectors
@@ -28,6 +29,7 @@ from app.workflows.observation import (
     ObservationListenerWorkflow,
     ObservationTicketWorkflow,
 )
+from app.workflows.provisioning import MirzaFixtureFulfillmentWorkflow
 from app.workflows.runtime_probe import RuntimeProbeWorkflow
 from app.workflows.tickets import TicketWorkflow
 
@@ -81,16 +83,17 @@ async def serve(settings: Settings, role: WorkerRole) -> None:
             reviews = MirzaReviewActivities(MirzaReviewRepository(engine),
                                            observations.repository, connectors, settings,
                                            observations.inference.versions)
+            provisioning = ProvisioningActivities(engine, settings, role)
             observed_activities = (
                 [observations.poll, observations.classify, observations.preflight]
                 if role == WorkerRole.DISPATCH
-                else [observations.extract, reviews.prepare]
+                else [observations.extract, reviews.prepare, provisioning.advance]
             )
             observed_workflows = (
                 [ObservationListenerWorkflow, ObservationTicketWorkflow,
                  GroupCorrectionPreflightWorkflow]
                 if role == WorkerRole.DISPATCH
-                else [MirzaPolicyReviewWorkflow]
+                else [MirzaPolicyReviewWorkflow, MirzaFixtureFulfillmentWorkflow]
             )
             worker = Worker(
                 client,

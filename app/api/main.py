@@ -265,7 +265,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "registered_workflows": ["RuntimeProbeWorkflow", "TicketWorkflow",
                                      "ObservationListenerWorkflow", "ObservationTicketWorkflow",
                                      "GroupCorrectionPreflightWorkflow",
-                                     "MirzaPolicyReviewWorkflow"],
+                                     "MirzaPolicyReviewWorkflow",
+                                     "MirzaFixtureFulfillmentWorkflow"],
             "synthetic_connector_enabled": config.enable_fixture_execution,
             "read_only_connectors_implemented": True,
             "read_observation_handoff_implemented": True,
@@ -275,6 +276,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "group_correction_preflight_implemented": True,
             "group_correction_atomic_write_contract_verified": False,
             "mirza_policy_review_implemented": True,
+            "synthetic_provisioning_implemented": True,
+            "native_provisioning_connector_enabled": False,
             "inference_enabled": config.inference_enabled or config.worker_inference_enabled,
         }
 

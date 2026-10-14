@@ -16,6 +16,8 @@ COPY scripts/verify_runtime.py ./scripts/verify_runtime.py
 COPY scripts/verify_tickets.py ./scripts/verify_tickets.py
 COPY scripts/verify_observations.py ./scripts/verify_observations.py
 COPY scripts/verify_policy_upgrade.py ./scripts/verify_policy_upgrade.py
+COPY scripts/verify_provisioning.py ./scripts/verify_provisioning.py
+COPY scripts/provisioning_cases.py ./scripts/provisioning_cases.py
 COPY scripts/history_fixtures ./scripts/history_fixtures
 USER agentic
 EXPOSE 8080
