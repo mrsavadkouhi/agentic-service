@@ -20,7 +20,11 @@ from app.storage.observations import ObservationRepository
 from app.storage.ticket_repository import TicketRepository
 from app.storage.workers import heartbeat
 from app.worker_health import marker_path
-from app.workflows.observation import ObservationListenerWorkflow, ObservationTicketWorkflow
+from app.workflows.observation import (
+    GroupCorrectionPreflightWorkflow,
+    ObservationListenerWorkflow,
+    ObservationTicketWorkflow,
+)
 from app.workflows.runtime_probe import RuntimeProbeWorkflow
 from app.workflows.tickets import TicketWorkflow
 
@@ -47,9 +51,15 @@ async def serve(settings: Settings, role: WorkerRole) -> None:
             state = "paused" if settings.paused(role) else "running"
             await asyncio.to_thread(heartbeat, engine, settings, role, worker_id, state)
             temporary = path.with_suffix(".tmp")
-            temporary.write_text(json.dumps({
-                "role": role.value, "state": state, "timestamp": time.time(),
-            }))
+            temporary.write_text(
+                json.dumps(
+                    {
+                        "role": role.value,
+                        "state": state,
+                        "timestamp": time.time(),
+                    }
+                )
+            )
             temporary.replace(path)
             await asyncio.sleep(settings.heartbeat_seconds)
 
@@ -65,17 +75,32 @@ async def serve(settings: Settings, role: WorkerRole) -> None:
             observations = ObservationActivities(
                 ObservationRepository(engine), connectors, settings
             )
-            observed_activities = ([observations.poll, observations.classify]
-                                   if role == WorkerRole.DISPATCH else [observations.extract])
-            observed_workflows = ([ObservationListenerWorkflow, ObservationTicketWorkflow]
-                                  if role == WorkerRole.DISPATCH else [])
+            observed_activities = (
+                [observations.poll, observations.classify, observations.preflight]
+                if role == WorkerRole.DISPATCH
+                else [observations.extract]
+            )
+            observed_workflows = (
+                [ObservationListenerWorkflow, ObservationTicketWorkflow,
+                 GroupCorrectionPreflightWorkflow]
+                if role == WorkerRole.DISPATCH
+                else []
+            )
             worker = Worker(
-                client, task_queue=settings.task_queue(role),
-                workflows=[RuntimeProbeWorkflow, TicketWorkflow, *observed_workflows], activities=[
-                    activities.record, tickets.next_event, tickets.commit, tickets.execute,
-                    tickets.finish, tickets.remind, *observed_activities,
+                client,
+                task_queue=settings.task_queue(role),
+                workflows=[RuntimeProbeWorkflow, TicketWorkflow, *observed_workflows],
+                activities=[
+                    activities.record,
+                    tickets.next_event,
+                    tickets.commit,
+                    tickets.execute,
+                    tickets.finish,
+                    tickets.remind,
+                    *observed_activities,
                 ],
-                max_concurrent_activities=2, max_concurrent_workflow_tasks=2,
+                max_concurrent_activities=2,
+                max_concurrent_workflow_tasks=2,
                 max_cached_workflows=20,
             )
             worker_task = asyncio.create_task(worker.run())
@@ -86,10 +111,25 @@ async def serve(settings: Settings, role: WorkerRole) -> None:
         done, _ = await asyncio.wait(watched, return_when=asyncio.FIRST_COMPLETED)
         for task in done:
             if task is not stop_task:
-                task.result()
+                try:
+                    task.result()
+                except Exception as error:
+                    logger.error(
+                        "Worker background task failed",
+                        extra={
+                            "worker_role": role.value,
+                            "event": "heartbeat_failure"
+                            if task is health_task
+                            else "worker_failure",
+                            "error_type": type(error).__name__,
+                        },
+                    )
+                    raise
     finally:
         stop.set()
-        if worker is not None:
+        # run() owns cleanup after a fatal failure. Calling shutdown() after Core
+        # startup validation failed waits on an event that was never initialized.
+        if worker is not None and worker_task is not None and not worker_task.done():
             await worker.shutdown()
         if worker_task is not None:
             await asyncio.gather(worker_task, return_exceptions=True)

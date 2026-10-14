@@ -90,6 +90,18 @@ class ObservationStart:
     mirza_queue: str
 
 
+class GroupPreflightRequest(Contract):
+    observation_id: Digest
+
+
+@dataclass
+class GroupPreflightStart:
+    tenant_id: str
+    ticket_id: str
+    observation_id: str
+    dispatch_queue: str
+
+
 @dataclass
 class ObservationReceipt:
     observation_id: str

@@ -51,6 +51,11 @@ class ObservationRepository:
                 else None
             )
 
+    def source_identity(self, observation_id):
+        with Session(self.engine) as session:
+            record = session.get(ObservationRecord, observation_id)
+            return (record.tenant_id, record.ticket_id, record.stage) if record else None
+
     def receipt(self, observation_id):
         result = self.get(observation_id)
         if result is None:

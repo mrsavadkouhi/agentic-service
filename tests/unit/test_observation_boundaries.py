@@ -23,7 +23,12 @@ from app.contracts.observation import ObservationResult, PollStart
 from app.settings import Settings
 from app.storage.models import Base
 from app.storage.observations import ObservationRepository
-from app.workflows.observation import ObservationListenerWorkflow, ObservationTicketWorkflow
+from app.workflows.observation import (
+    GroupCorrectionPreflightWorkflow,
+    ObservationListenerWorkflow,
+    ObservationTicketWorkflow,
+)
+from app.workflows.tickets import TicketWorkflow
 from scripts.evaluate_observations import evaluate_labels
 
 
@@ -101,7 +106,7 @@ async def test_token_and_cost_caps_and_live_activity_requirement_prevent_unbound
         inference_enabled=True,
         inference_url="https://fixture.invalid/v1",
         inference_token="dedicated-inference-token",
-        inference_model="fixture-model",
+        inference_model="local-qwen3.8",
         inference_input_usd_per_million=0.1,
         inference_output_usd_per_million=0.1,
     )
@@ -110,6 +115,23 @@ async def test_token_and_cost_caps_and_live_activity_requirement_prevent_unbound
         await runner.run("classify", Scope(packet()))
     ).reason_code == "inference_activity_required"
     assert runner.client is None
+
+
+async def test_partial_offline_fixture_cannot_enable_live_extraction_or_bypass_activity_guard():
+    async def respond(messages, info):
+        return ModelResponse([ToolCallPart(info.output_tools[0].name,
+                                          {"kind": "ordinary", "group": "Network"})])
+
+    disabled = Inference(config(), classification_model=FunctionModel(respond))
+    assert (await disabled.run("extract", Scope(packet()))).reason_code == "inference_disabled"
+    enabled = Inference(config(
+        inference_enabled=True, inference_url="https://fixture.invalid/api/v1",
+        inference_token="dedicated-token", inference_input_usd_per_million=0.02,
+        inference_output_usd_per_million=0.10,
+    ), classification_model=FunctionModel(respond))
+    result = await enabled.run("extract", Scope(packet()))
+    assert result.reason_code == "inference_activity_required"
+    assert disabled.client is enabled.client is None
 
 
 @pytest.mark.parametrize(
@@ -126,7 +148,7 @@ def test_fixed_inference_origin_and_credential_separation(url):
         inference_enabled=True,
         inference_url=url,
         inference_token="dedicated-token",
-        inference_model="fixture",
+        inference_model="local-qwen3.8",
         inference_input_usd_per_million=0.1,
         inference_output_usd_per_million=0.1,
     )
@@ -135,6 +157,17 @@ def test_fixed_inference_origin_and_credential_separation(url):
     fields["inference_url"] = "https://fixture.invalid/v1"
     with pytest.raises(ValidationError):
         config(**fields, mirza_read_token="dedicated-token")
+
+
+@pytest.mark.parametrize("endpoint", ["https://fixture.invalid/api/v1", "https://fixture.invalid/v1"])
+def test_local_model_is_required_and_verified_gateway_path_is_supported(endpoint):
+    settings = dict(
+        inference_enabled=True, inference_url=endpoint, inference_token="dedicated-token",
+        inference_input_usd_per_million=0.02, inference_output_usd_per_million=0.10,
+    )
+    assert config(**settings).inference_model == "local-qwen3.8"
+    with pytest.raises(ValidationError, match="local-qwen3.8"):
+        config(**settings, inference_model="sub-gpt-6-luna")
 
 
 async def test_candidate_reads_reject_filter_escape_and_rotate_bounded_scope():
@@ -191,7 +224,10 @@ async def test_note_read_limits_stop_large_or_excessive_content_without_partial_
 
 async def test_workflow_sandboxes_import_no_model_or_business_content():
     runner = SandboxedWorkflowRunner()
-    for cls in (ObservationTicketWorkflow, ObservationListenerWorkflow):
+    for cls in (
+        ObservationTicketWorkflow, ObservationListenerWorkflow, GroupCorrectionPreflightWorkflow,
+        TicketWorkflow,
+    ):
         runner.prepare_workflow(workflow._Definition.must_from_class(cls))
     assert set(asdict(PollStart("dispatch", "mirza"))) == {
         "dispatch_queue",
@@ -230,6 +266,14 @@ def test_operator_only_observation_routes_do_not_use_business_intake(
         {"Authorization": "Bearer " + "i" * 32},
     )
     with TestClient(main.create_app(settings)) as api:
+        path = "/v1/group-corrections/1/preflight"
+        body = {"observation_id": "a" * 64}
+        assert api.post(path, headers=intake, json=body).status_code == 401
+        assert api.post(path, headers=operator, json={**body, "technician": "2"}).status_code == 422
+        assert api.post(path, headers=operator, json=body).json()["authorized"] is False
+        assert client.start_workflow.call_args.args[0] == GroupCorrectionPreflightWorkflow.run
+        runtime = api.get("/runtime").json()
+        assert runtime["group_correction_atomic_write_contract_verified"] is False
         assert api.post("/v1/observations/1", headers=intake).status_code == 401
         assert api.get("/v1/observations/1", headers=intake).status_code == 401
         assert api.post("/v1/observations/sk-private", headers=operator).status_code == 422

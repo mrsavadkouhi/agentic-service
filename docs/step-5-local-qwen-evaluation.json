@@ -1,0 +1,446 @@
+{
+  "model": "local-qwen3.8",
+  "endpoint": "https://mirza.tapsi.tech/api/v1",
+  "data": "synthetic; labels derive from operator-confirmed rules",
+  "runtime": "Temporal ActivityEnvironment; native recovery checked separately",
+  "external_changes": 0,
+  "results": [
+    {
+      "case": "create_api_key",
+      "passed": true,
+      "reason_codes": [
+        "model_proposal_only",
+        "model_proposal_only"
+      ],
+      "model_requests": 5,
+      "input_tokens": 10300,
+      "output_tokens": 1830,
+      "estimated_cost_usd": 0.000389,
+      "latency_ms": 34751,
+      "authorized": false,
+      "observed_classification": {
+        "kind": "mirza",
+        "group": null,
+        "operation": "create_api_key"
+      },
+      "observed_proposal": {
+        "kind": "mirza",
+        "operation": "create_api_key",
+        "job": {
+          "operation": "create_api_key",
+          "owner_email": "owner@example.invalid",
+          "tool_team": {
+            "kind": "existing_tool",
+            "team_id": "tool-team"
+          },
+          "purpose_ref": "purpose-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "budget_limit": "15",
+          "budget_duration": "30d",
+          "expires_at": null
+        },
+        "missing_fields": []
+      },
+      "schema_diagnostics": []
+    },
+    {
+      "case": "increase_api_key_reasoning",
+      "passed": true,
+      "reason_codes": [
+        "model_proposal_only",
+        "model_proposal_only"
+      ],
+      "model_requests": 4,
+      "input_tokens": 8373,
+      "output_tokens": 1457,
+      "estimated_cost_usd": 0.00031316,
+      "latency_ms": 27582,
+      "authorized": false,
+      "observed_classification": {
+        "kind": "mirza",
+        "group": null,
+        "operation": "increase_api_key_reasoning"
+      },
+      "observed_proposal": {
+        "kind": "mirza",
+        "operation": "increase_api_key_reasoning",
+        "job": {
+          "operation": "increase_api_key_reasoning",
+          "owner_email": "owner@example.invalid",
+          "key_ref": "key-metadata-1",
+          "tool_team_id": "tool-team",
+          "model_ids": [
+            "model-a"
+          ],
+          "reasoning_level": "high",
+          "expires_at": null
+        },
+        "missing_fields": []
+      },
+      "schema_diagnostics": []
+    },
+    {
+      "case": "increase_team_reasoning",
+      "passed": true,
+      "reason_codes": [
+        "model_proposal_only",
+        "model_proposal_only"
+      ],
+      "model_requests": 4,
+      "input_tokens": 8283,
+      "output_tokens": 924,
+      "estimated_cost_usd": 0.00025806,
+      "latency_ms": 17676,
+      "authorized": false,
+      "observed_classification": {
+        "kind": "mirza",
+        "group": null,
+        "operation": "increase_team_reasoning"
+      },
+      "observed_proposal": {
+        "kind": "mirza",
+        "operation": "increase_team_reasoning",
+        "job": {
+          "operation": "increase_team_reasoning",
+          "team_id": "ui-team",
+          "team_kind": "non_tool",
+          "model_ids": [
+            "model-a"
+          ],
+          "reasoning_level": "high",
+          "expires_at": null
+        },
+        "missing_fields": []
+      },
+      "schema_diagnostics": []
+    },
+    {
+      "case": "grant_team_model_access",
+      "passed": true,
+      "reason_codes": [
+        "model_proposal_only",
+        "model_proposal_only"
+      ],
+      "model_requests": 4,
+      "input_tokens": 8185,
+      "output_tokens": 1102,
+      "estimated_cost_usd": 0.0002739,
+      "latency_ms": 20932,
+      "authorized": false,
+      "observed_classification": {
+        "kind": "mirza",
+        "group": null,
+        "operation": "grant_team_model_access"
+      },
+      "observed_proposal": {
+        "kind": "mirza",
+        "operation": "grant_team_model_access",
+        "job": {
+          "operation": "grant_team_model_access",
+          "team_id": "ui-team",
+          "team_kind": "non_tool",
+          "model_ids": [
+            "model-b"
+          ],
+          "expires_at": null
+        },
+        "missing_fields": []
+      },
+      "schema_diagnostics": []
+    },
+    {
+      "case": "add_person_to_non_tool_team",
+      "passed": true,
+      "reason_codes": [
+        "model_proposal_only",
+        "model_proposal_only"
+      ],
+      "model_requests": 4,
+      "input_tokens": 8656,
+      "output_tokens": 1894,
+      "estimated_cost_usd": 0.00036251999999999996,
+      "latency_ms": 35438,
+      "authorized": false,
+      "observed_classification": {
+        "kind": "mirza",
+        "group": null,
+        "operation": "add_person_to_non_tool_team"
+      },
+      "observed_proposal": {
+        "kind": "mirza",
+        "operation": "add_person_to_non_tool_team",
+        "job": {
+          "operation": "add_person_to_non_tool_team",
+          "person_email": "owner@example.invalid",
+          "team_id": "ui-team",
+          "requested_model_id": "model-a",
+          "expires_at": null
+        },
+        "missing_fields": []
+      },
+      "schema_diagnostics": []
+    },
+    {
+      "case": "increase_person_budget",
+      "passed": true,
+      "reason_codes": [
+        "model_proposal_only",
+        "model_proposal_only"
+      ],
+      "model_requests": 4,
+      "input_tokens": 8363,
+      "output_tokens": 938,
+      "estimated_cost_usd": 0.00026106,
+      "latency_ms": 18170,
+      "authorized": false,
+      "observed_classification": {
+        "kind": "mirza",
+        "group": null,
+        "operation": "increase_person_budget"
+      },
+      "observed_proposal": {
+        "kind": "mirza",
+        "operation": "increase_person_budget",
+        "job": {
+          "operation": "increase_person_budget",
+          "person_email": "owner@example.invalid",
+          "budget": {
+            "amount": "5",
+            "interpretation": "delta",
+            "baseline_limit": "10",
+            "desired_limit": "15"
+          }
+        },
+        "missing_fields": []
+      },
+      "schema_diagnostics": []
+    },
+    {
+      "case": "increase_api_key_budget",
+      "passed": true,
+      "reason_codes": [
+        "model_proposal_only",
+        "model_proposal_only"
+      ],
+      "model_requests": 4,
+      "input_tokens": 8403,
+      "output_tokens": 1199,
+      "estimated_cost_usd": 0.00028796000000000003,
+      "latency_ms": 23605,
+      "authorized": false,
+      "observed_classification": {
+        "kind": "mirza",
+        "group": null,
+        "operation": "increase_api_key_budget"
+      },
+      "observed_proposal": {
+        "kind": "mirza",
+        "operation": "increase_api_key_budget",
+        "job": {
+          "operation": "increase_api_key_budget",
+          "owner_email": "owner@example.invalid",
+          "key_ref": "key-metadata-1",
+          "tool_team_id": "tool-team",
+          "budget": {
+            "amount": "5",
+            "interpretation": "delta",
+            "baseline_limit": "10",
+            "desired_limit": "15"
+          }
+        },
+        "missing_fields": []
+      },
+      "schema_diagnostics": []
+    },
+    {
+      "case": "increase_team_budget",
+      "passed": true,
+      "reason_codes": [
+        "model_proposal_only",
+        "model_proposal_only"
+      ],
+      "model_requests": 4,
+      "input_tokens": 8267,
+      "output_tokens": 845,
+      "estimated_cost_usd": 0.00024984,
+      "latency_ms": 17152,
+      "authorized": false,
+      "observed_classification": {
+        "kind": "mirza",
+        "group": null,
+        "operation": "increase_team_budget"
+      },
+      "observed_proposal": {
+        "kind": "mirza",
+        "operation": "increase_team_budget",
+        "job": {
+          "operation": "increase_team_budget",
+          "team_id": "tool-team",
+          "team_kind": "tool",
+          "budget": {
+            "amount": "5",
+            "interpretation": "delta",
+            "baseline_limit": "10",
+            "desired_limit": "15"
+          }
+        },
+        "missing_fields": []
+      },
+      "schema_diagnostics": []
+    },
+    {
+      "case": "unsupported-0",
+      "passed": true,
+      "reason_codes": [
+        "unsupported_mirza_operation"
+      ],
+      "model_requests": 2,
+      "input_tokens": 1656,
+      "output_tokens": 271,
+      "estimated_cost_usd": 6.0219999999999996e-05,
+      "latency_ms": 5816,
+      "authorized": false,
+      "observed_classification": {
+        "kind": "unsupported_mirza",
+        "group": null,
+        "operation": null
+      },
+      "observed_proposal": null,
+      "schema_diagnostics": []
+    },
+    {
+      "case": "unsupported-1",
+      "passed": true,
+      "reason_codes": [
+        "unsupported_mirza_operation"
+      ],
+      "model_requests": 2,
+      "input_tokens": 1854,
+      "output_tokens": 465,
+      "estimated_cost_usd": 8.358e-05,
+      "latency_ms": 8892,
+      "authorized": false,
+      "observed_classification": {
+        "kind": "unsupported_mirza",
+        "group": null,
+        "operation": null
+      },
+      "observed_proposal": null,
+      "schema_diagnostics": []
+    },
+    {
+      "case": "unsupported-2",
+      "passed": true,
+      "reason_codes": [
+        "unsupported_mirza_operation"
+      ],
+      "model_requests": 2,
+      "input_tokens": 1657,
+      "output_tokens": 227,
+      "estimated_cost_usd": 5.584e-05,
+      "latency_ms": 4618,
+      "authorized": false,
+      "observed_classification": {
+        "kind": "unsupported_mirza",
+        "group": null,
+        "operation": null
+      },
+      "observed_proposal": null,
+      "schema_diagnostics": []
+    },
+    {
+      "case": "unsupported-3",
+      "passed": true,
+      "reason_codes": [
+        "unsupported_mirza_operation"
+      ],
+      "model_requests": 2,
+      "input_tokens": 1692,
+      "output_tokens": 357,
+      "estimated_cost_usd": 6.954e-05,
+      "latency_ms": 7318,
+      "authorized": false,
+      "observed_classification": {
+        "kind": "unsupported_mirza",
+        "group": null,
+        "operation": null
+      },
+      "observed_proposal": null,
+      "schema_diagnostics": []
+    },
+    {
+      "case": "assigned",
+      "passed": true,
+      "reason_codes": [
+        "human_assignment_preserved"
+      ],
+      "model_requests": 2,
+      "input_tokens": 1667,
+      "output_tokens": 320,
+      "estimated_cost_usd": 6.534000000000001e-05,
+      "latency_ms": 6740,
+      "authorized": false,
+      "observed_classification": {
+        "kind": "ordinary",
+        "group": "Network",
+        "operation": null
+      },
+      "observed_proposal": null,
+      "schema_diagnostics": []
+    },
+    {
+      "case": "outside-helpdesk",
+      "passed": true,
+      "reason_codes": [
+        "outside_helpdesk_scope"
+      ],
+      "model_requests": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "estimated_cost_usd": 0,
+      "latency_ms": 0,
+      "authorized": false,
+      "observed_classification": null,
+      "observed_proposal": null,
+      "schema_diagnostics": []
+    },
+    {
+      "case": "lifecycle",
+      "passed": true,
+      "reason_codes": [
+        "excluded_lifecycle_process"
+      ],
+      "model_requests": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "estimated_cost_usd": 0,
+      "latency_ms": 0,
+      "authorized": false,
+      "observed_classification": null,
+      "observed_proposal": null,
+      "schema_diagnostics": []
+    },
+    {
+      "case": "duplicate-expired",
+      "passed": false,
+      "reason_codes": [
+        "model_proposal_only",
+        "inference_failed_or_limited"
+      ],
+      "model_requests": 5,
+      "input_tokens": 10225,
+      "output_tokens": 1931,
+      "estimated_cost_usd": 0.00017168,
+      "latency_ms": 48559,
+      "authorized": false,
+      "observed_classification": {
+        "kind": "mirza",
+        "group": null,
+        "operation": "create_api_key"
+      },
+      "observed_proposal": null,
+      "schema_diagnostics": [
+        "validation_retry"
+      ]
+    }
+  ]
+}

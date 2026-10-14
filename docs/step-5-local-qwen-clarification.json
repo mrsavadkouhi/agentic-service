@@ -1,0 +1,39 @@
+{
+  "model": "local-qwen3.8",
+  "endpoint": "https://mirza.tapsi.tech/api/v1",
+  "data": "synthetic; labels derive from operator-confirmed rules",
+  "runtime": "Temporal ActivityEnvironment; native recovery checked separately",
+  "external_changes": 0,
+  "results": [
+    {
+      "case": "duplicate-expired",
+      "passed": true,
+      "reason_codes": [
+        "model_proposal_only",
+        "model_proposal_only"
+      ],
+      "model_requests": 5,
+      "input_tokens": 10560,
+      "output_tokens": 1620,
+      "estimated_cost_usd": 0.00037319999999999996,
+      "latency_ms": 31398,
+      "authorized": false,
+      "observed_classification": {
+        "kind": "mirza",
+        "group": null,
+        "operation": "create_api_key"
+      },
+      "observed_proposal": {
+        "kind": "mirza",
+        "operation": "create_api_key",
+        "job": null,
+        "missing_fields": [
+          "additional_key_needed"
+        ]
+      },
+      "schema_diagnostics": [],
+      "classification_reused": true
+    }
+  ],
+  "usage": "Recorded metrics include the reused completed classification; only extraction was called again."
+}

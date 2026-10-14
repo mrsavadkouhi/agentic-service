@@ -17,7 +17,7 @@ from app.contracts.tickets import (
     stable_id,
 )
 
-POLICY_VERSION = "step-1-confirmed-v1"
+POLICY_VERSION = "step-1-confirmed-v2"
 
 
 def valid_clarification(event: TicketEvent, tracking: Tracking, terms: str) -> bool:
@@ -107,6 +107,21 @@ def job_issue(event: TicketEvent, catalog: Catalog, ticket_mapping_supplied: boo
 
 
 def evaluate(event: TicketEvent, prior: Tracking, catalog: Catalog | None) -> Evaluation:
+    return _evaluate(event, prior, catalog, POLICY_VERSION, True)
+
+
+def evaluate_historical_v1(
+    event: TicketEvent, prior: Tracking, catalog: Catalog | None
+) -> Evaluation:
+    # Only reconstruct recorded commands. Live calls must use the current policy.
+    from temporalio import workflow
+
+    if not workflow.unsafe.is_replaying():
+        raise ValueError("Historical policy is only available during workflow replay")
+    return _evaluate(event, prior, catalog, "step-1-confirmed-v1", False)
+
+
+def _evaluate(event, prior, catalog, policy_version, preserve_handoff_assignment):
     snapshot = event.snapshot
     sequence = snapshot.source_sequence
     frame = prior.model_copy(update={"pending_action_id": None, "pending_action_role": None})
@@ -150,7 +165,7 @@ def evaluate(event: TicketEvent, prior: Tracking, catalog: Catalog | None) -> Ev
     if (
         not catalog
         or event.catalog_version != catalog.version
-        or event.policy_version != POLICY_VERSION
+        or event.policy_version != policy_version
         or (event.data_kind == "synthetic") != (catalog.environment == "synthetic")
     ):
         frame = frame.model_copy(update={"wait": None})
@@ -179,6 +194,13 @@ def evaluate(event: TicketEvent, prior: Tracking, catalog: Catalog | None) -> Ev
         )
     assert isinstance(proposal, MirzaRequest)
     dedicated = snapshot.template_id in catalog.dedicated_templates.values()
+    if (preserve_handoff_assignment and not dedicated and snapshot.support_group_id != groups["DWE"]
+            and snapshot.technician_ref is not None
+            and (frame.fallback_enrolled or snapshot.support_group_id == groups["Helpdesk"])):
+        # The operator revoked the Mirza handoff exception. An assigned request
+        # cannot be moved for approval; already-approved same-group jobs remain valid.
+        frame = frame.model_copy(update={"wait": None})
+        return result(WorkflowState.MANUAL_REVIEW, "human_assignment_preserved")
     if not dedicated and not frame.fallback_enrolled:
         if snapshot.support_group_id != groups["Helpdesk"]:
             return result(WorkflowState.COMPLETED, "ineligible_mirza_intake")

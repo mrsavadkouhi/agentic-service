@@ -1,9 +1,9 @@
 # Step 5: ticket observation agents
 
-Implementation and offline verification are complete on 2026-10-13. Polling and
-inference remain disabled. Live model quality, the Docker image and native
-PostgreSQL/Temporal recovery still need verification before rollout. No production
-ticket, Mirza or Mattermost write capability was added.
+Implementation, offline verification and native PostgreSQL/Temporal recovery are
+complete on 2026-10-13. Polling and inference remain disabled. Live model quality
+acceptance remains required before rollout. No production ticket, Mirza or
+Mattermost write capability was added.
 
 ## Execution and data boundaries
 
@@ -51,6 +51,10 @@ process membership requires local review. Ordinary requests propose group
 correction only for unassigned current Helpdesk tickets. Existing technicians,
 correct Helpdesk ownership and ordinary requests outside Helpdesk produce no-ops.
 No template changes or technician assignment are proposed.
+The 2026-10-14 preservation rule also covers Mirza DWE approval handoffs. Assigned
+fallback requests retain their extracted terms but cannot trigger an automatic
+group move. Approved Mirza jobs preserving the existing group/technician remain
+eligible. Policy `step-1-confirmed-v2` rejects older policy receipts.
 
 Only the eight confirmed Mirza operations are extracted. Direct key model grants,
 key reassignment, key membership in non-Tool teams and other unsupported Mirza
@@ -75,8 +79,12 @@ Step 4 operator readers and receives only the inference-enabled reporting flag,
 without the inference token. Neither worker receives a Mattermost token.
 
 Both workflow modes must stay `observe` for automatic polling. Inference needs a
-fixed HTTPS LiteLLM-compatible URL, a dedicated inference credential, a model
-alias, and declared upper-bound input/output USD rates per million tokens. The
+fixed HTTPS LiteLLM-compatible URL, a dedicated inference credential, and declared
+upper-bound input/output USD rates per million tokens. The only permitted enabled
+agent model is `local-qwen3.8`, as required by the operator; other aliases are
+rejected. The installed gateway URL is `https://mirza.tapsi.tech/api/v1`, which
+HAProxy rewrites to LiteLLM `/v1`. Both deployed local-model targets are
+`hosted_vllm/qwen3.8-27b`; the deployed router has no fallback configuration. The
 credential must differ from read/administrator/intake/operator credentials. The
 agent service does not provision or modify that Mirza credential/model.
 
@@ -151,12 +159,92 @@ latest classification. Include English/Persian, all groups, all jobs, human
 assignments, wrong templates, unsupported key operations and lifecycle exclusions.
 Human review of extracted terms remains necessary beyond kind/operation accuracy.
 
-The local checks pass: 399 pytest cases, Ruff, both quiet Compose configurations, dependency
+### Real local-Qwen evaluation
+
+The [evaluation summary](step-5-local-qwen-summary.json), reviewed 2026-10-14,
+records actual `local-qwen3.8` responses to 24 synthetic English/Persian cases.
+Eight routing cases, all eight supported jobs, four prohibited operations,
+assignment/scope/lifecycle guards and duplicate expired-key clarification match
+the operator-derived labels after compatibility fixes. This is bounded semantic
+verification, not production ticket accuracy or approval proof. Two guard cases
+correctly skip inference entirely.
+
+Initial object-valued `job` responses failed dictionary validation. The extraction
+boundary now accepts a bounded JSON object/null encoding, then applies all existing
+discriminated operation, identity, budget and policy checks. Missing-field outputs
+use the documented enum. Explicit duplicate-key clarification instructions fixed
+the remaining failure; the [initial batch](step-5-local-qwen-evaluation.json) retains
+that failure and the [recheck](step-5-local-qwen-clarification.json) records its
+correct `additional_key_needed` result. The completed classification was reused;
+uncertain claims and spend reservations were retained.
+
+The fixed public inference path was verified from deployed HAProxy; model discovery
+succeeded with the supplied service-account credential held only in memory. Both
+deployed local-Qwen targets use internal Mirza rates of 0.02 input / 0.10 output
+accounting units per million tokens. Sequential checks retained 0.398 reservations
+including failures under a 0.40 cap. Successful final receipts estimate 0.003583
+units; those values are not provider invoices. Recorded per-case median latency is
+7.1 seconds, maximum 35.4 seconds across classification plus extraction. Each
+stage retains its 30-second timeout, three-request and 2,000-output-token limits.
+All outcomes have `authorized: false`; no server, ticket or message was changed.
+
+To rerun the synthetic evaluation with a memory-only credential:
+
+```bash
+.venv/bin/python scripts/evaluate_live_observations.py --report /tmp/qwen-report.json
+```
+
+The command reads the token with a hidden prompt and keeps its private persistent
+SQLite reservation ledger in `.local/qwen-evaluation.db`. Never delete or reset
+that ledger to repeat uncertain calls. It uses Temporal's `ActivityEnvironment`
+with actual model calls; native PostgreSQL/Temporal replay is the separate check
+below. Production observation labels and extracted terms still require review
+before activating support-group writes.
+The live report used the prior policy version. The subsequent preservation change
+is enforced outside the model and covered by offline regression cases, including
+assigned Mirza fallback, ineligible specialized intake and approved same-group jobs.
+
+### Native recovery verification
+
+`scripts/check_observations.sh` runs the two-phase local verifier with fixture
+tickets and offline FunctionModel responses. It verifies the dispatch/Mirza queue
+handoff, restores waiting workflows after PostgreSQL/Temporal and worker restarts,
+checks cache reuse and revision invalidation, replays histories without raw ticket
+text, and exercises PostgreSQL claim/daily-budget races. No source connector or
+live model is invoked. Synthetic probe observations and reservations stay in the
+local database; uncertain reservations are never erased to retry.
+
+With Docker running, build sequentially, start the local observation stack with
+polling/inference off, then run:
+
+```bash
+COMPOSE_PARALLEL_LIMIT=1 docker compose build api
+COMPOSE_PARALLEL_LIMIT=1 docker compose up -d --wait --wait-timeout 180
+bash scripts/check_observations.sh
+```
+
+The verifier runs in a separate short-lived process under the existing API
+service's 192 MiB/0.25 CPU limits. It does not run alongside the API process in the
+same container. The script restarts only this project's services, prints their
+resource use, and stops them afterward without deleting volumes. Failed checks
+retain a private `/tmp/agentic-observation-verify.*` directory with synthetic
+workflow references so the finish phase can be retried. Existing long-lived
+workflows remain durable; this is a local recovery check, not production rollout.
+The native two-phase check passed, including PostgreSQL/Temporal restarts, cached
+results with zero repeated fixture model calls, changed-evidence inference, native
+concurrent claim/budget locks, private workflow histories and Temporal replay.
+Neither phase called a source connector or live model. Business intake/actions
+and synthetic execution effects remained unchanged. Alembic reported no missing
+upgrade operations. All five application services became healthy.
+
+The expanded local checks pass: 449 pytest cases, Ruff, both quiet Compose configurations, dependency
 compatibility, SQLite migration/metadata parity and Temporal workflow sandbox
-imports. The full suite took four seconds, averaging 94% of one CPU and peaking
-at 180 MiB RSS with no swapping. Worker imports, both agent instances, actual
+imports. The latest full suite took four seconds, averaging 93% of one CPU and peaking
+at 177 MiB RSS with no swapping. Worker imports, both agent instances, actual
 client initialization and one offline classification peaked at 138 MiB RSS;
-192 MiB worker caps remain. Docker was unavailable, so image build/native PostgreSQL locking and
-Temporal replay/restart are pending. No live inference or external write was
-performed. Step 6 must verify recovery/resource behavior and reviewed live model
-quality before enabling any support-group correction.
+192 MiB worker caps remain. Native verification used a temporary Compose override
+with 0.70 CPU combined across five services; the healthy stack used about 610 MiB.
+Cold startup at 0.10 CPU per application needed a longer health-check grace period,
+so verification used 120 seconds without increasing CPU/RAM caps. All test
+containers were stopped afterward, retaining volumes. Step 6 still requires
+reviewed model quality and installed atomic write preconditions before activation.

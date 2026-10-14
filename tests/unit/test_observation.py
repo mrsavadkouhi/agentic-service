@@ -338,6 +338,22 @@ async def test_cache_reuses_completed_model_calls_and_changed_revision_invalidat
     assert changed.observation_id != first.observation_id and len(calls) == 2
 
 
+async def test_assigned_fallback_mirza_retains_terms_but_cannot_change_group(repository):
+    source = packet(template_id="other",
+                    technician=DeskPerson(person_id="technician", email=None))
+    job = JOBS[5]
+    worker, _, _ = activities(
+        repository, {"kind": "mirza", "operation": job["operation"]},
+        {"kind": "mirza", "operation": job["operation"], "job": job}, source_packet=source,
+    )
+    classified = await worker.classify(request())
+    extracted = await worker.extract(request(), classified.observation_id)
+    result = repository.get(extracted.observation_id)
+    assert result.policy_reason == "human_assignment_preserved" and not result.authorized
+    assert result.proposal.job.operation == "increase_person_budget"
+    assert source.ticket.group_id == "sd-helpdesk" and source.ticket.technician is not None
+
+
 async def test_lost_post_inference_result_never_repeats_model_call(repository, monkeypatch):
     worker, calls, _ = activities(repository, {"kind": "ordinary", "group": "Network"})
     original = repository.finish

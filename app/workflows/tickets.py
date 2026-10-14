@@ -15,7 +15,7 @@ with workflow.unsafe.imports_passed_through():
     )
     from app.contracts.tickets import Catalog, Evaluation, TicketEvent, Tracking, WorkflowState
     from app.policies.reminders import next_morning, reminder_due
-    from app.policies.tickets import evaluate
+    from app.policies.tickets import evaluate, evaluate_historical_v1
 
 RETRY = RetryPolicy(
     initial_interval=timedelta(seconds=1),
@@ -98,7 +98,12 @@ class TicketWorkflow:
                         if event.catalog_json
                         else None
                     )
-                    decision = evaluate(normalized, prior, catalog)
+                    # Per-event markers preserve already-recorded v1 commands while
+                    # ensuring new events in an existing actor use the revised rule.
+                    if workflow.patched("preserve-human-assignment-v2-" + event.event_key):
+                        decision = evaluate(normalized, prior, catalog)
+                    else:
+                        decision = evaluate_historical_v1(normalized, prior, catalog)
                 receipt = await self.call(
                     "commit_ticket_transition",
                     CommitTransition(

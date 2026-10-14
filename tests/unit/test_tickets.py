@@ -17,7 +17,7 @@ from app.contracts.tickets import (
 )
 from app.policies.reminders import TEHRAN, next_morning, reminder_due
 from app.policies.synthetic_events import catalog, event
-from app.policies.tickets import evaluate
+from app.policies.tickets import evaluate, evaluate_historical_v1
 
 
 def changed(original, *, sequence=None, **snapshot):
@@ -131,6 +131,24 @@ def test_changed_budget_invalidates_old_approval_and_delta_is_stable_absolute_ta
         Budget(amount=10, interpretation="delta", baseline_limit=10, desired_limit=30)
 
 
+@pytest.mark.parametrize("enrolled", [False, True])
+def test_assigned_fallback_mirza_cannot_trigger_the_dwe_handoff(enrolled):
+    original = changed(event(dedicated=False), technician_ref="technician")
+    prior = Tracking(fallback_enrolled=enrolled, enrollment_sequence=1 if enrolled else None)
+    decision = evaluate(original, prior, catalog())
+    assert decision.state == "manual_review" and not decision.authorized
+    assert decision.reason_code == "human_assignment_preserved"
+    assert decision.tracking.fallback_enrolled is enrolled
+    assert decision.tracking.wait is None
+
+
+def test_assigned_dedicated_approved_mirza_can_run_without_a_group_change():
+    original = changed(event(approved=True), technician_ref="technician")
+    decision = evaluate(original, Tracking(), catalog())
+    assert decision.authorized and decision.reason_code == "approved_mirza_job"
+    assert original.snapshot.technician_ref == "technician"
+
+
 def test_fallback_snapshots_incharge_and_checks_actor_after_handoff():
     first = event(dedicated=False)
     initial = evaluate(first, Tracking(), catalog())
@@ -165,6 +183,35 @@ def test_other_template_outside_helpdesk_is_not_enrolled():
         changed(event(dedicated=False), support_group_id="sd-dwe"), Tracking(), catalog()
     )
     assert decision.reason_code == "ineligible_mirza_intake"
+
+
+def test_assigned_other_template_outside_helpdesk_stays_ineligible():
+    decision = evaluate(
+        changed(event(dedicated=False), support_group_id="sd-network", technician_ref="technician"),
+        Tracking(), catalog(),
+    )
+    assert decision.reason_code == "ineligible_mirza_intake" and not decision.authorized
+
+
+def test_prior_policy_version_cannot_authorize_after_assignment_rule_change():
+    original = event(approved=True).model_copy(update={"policy_version": "step-1-confirmed-v1"})
+    decision = evaluate(original, Tracking(), catalog())
+    assert decision.reason_code == "unverified_catalog_or_policy" and not decision.authorized
+
+
+def test_old_handoff_policy_is_replay_only_and_matches_recorded_v1_state(monkeypatch):
+    from temporalio import workflow
+
+    original = changed(event(dedicated=False), technician_ref="technician").model_copy(
+        update={"policy_version": "step-1-confirmed-v1"}
+    )
+    monkeypatch.setattr(workflow.unsafe, "is_replaying", lambda: False)
+    with pytest.raises(ValueError, match="only available during workflow replay"):
+        evaluate_historical_v1(original, Tracking(), catalog())
+    monkeypatch.setattr(workflow.unsafe, "is_replaying", lambda: True)
+    historical = evaluate_historical_v1(original, Tracking(), catalog())
+    assert historical.state == "awaiting_approval" and historical.tracking.fallback_enrolled
+    assert not historical.authorized
 
 
 def test_clarification_needs_selected_author_note_then_open_and_separate_approval():

@@ -15,12 +15,18 @@ decisions; do not add new jobs or reinterpret approval authority without asking.
   The Step 4 observation handoff is complete; `observation_complete` measures
   collection only. Enforce unresolved approval/order/write gates in Steps 6–8;
   Step 5 classification remains observation-only.
+- Step 6 currently adds operator-only group-correction preflight and review
+  payloads. Keep its results unauthorized and outside executable intake/actions.
+  No native writer exists until installed atomic revision/technician protection
+  is verified; two reads or a local lock do not establish that contract.
 - Temporal owns workflow state. Keep I/O in activities, and make activities
   idempotent before adding privileged actions. PostgreSQL stores projections/audit.
 - PydanticAI is the selected agent framework. Step 5 pins the minimal OpenAI
   inference package and implements observation agents; reuse Pydantic contracts and run agents in
   Temporal activities. Give agents only explicit scoped read tools and bounded
   sanitized results. Policy checks and privileged writes remain outside agents.
+- Agent inference must use `local-qwen3.8` exclusively. Do not evaluate or fall
+  back to online-provider models. Local-model failures remain blocked.
 - Keep observation polling and inference disabled by default. Observation receipts
   must not enter executable intake or action staging. Durable cache claims prevent
   retries from repeating uncertain model calls; never erase spend reservations to retry.
@@ -29,6 +35,10 @@ decisions; do not add new jobs or reinterpret approval authority without asking.
   database tables directly. Use least-privilege credentials per process later.
 - Do not change ticket templates or assign technicians. Lifecycle process tickets
   and their children remain excluded. Follow the eight-job Mirza allowlist.
+- Preserve human assignments for every group change, including the Mirza DWE
+  handoff. The earlier handoff clearing exception was revoked on 2026-10-14.
+  Unknown assignment origin is treated as human; assigned fallback requests
+  require manual handling. Approved same-group Mirza jobs remain eligible.
 - The operator confirms all historical lifecycle children used one dedicated
   n8n account. A verified configured creator plus the explicit coverage setting
   can rule out children from other creators; positive mappings take precedence.

@@ -11,6 +11,7 @@ This register does not introduce another approval process for development.
 | INT-01 | ServiceDesk Plus 15.1 Build 15100 | Verify installed contracts through read-only inspection |
 | INT-02 | No staging environment | Local fixtures/mocks, production observation, then scoped activation |
 | AGENT-FRAMEWORK | Use PydanticAI for the Python agent layer | Typed classification/extraction/drafting and scoped read tools run in Temporal activities; application policies and privileged connectors enforce authorization. Retain existing runtime/contracts; implement and pin inference dependencies with the first agents in Step 5. Confirmed 2026-10-12 |
+| AGENT-MODEL | Use only `local-qwen3.8`; no online-provider models | Enforce the alias for enabled inference, including evaluation. Local-model failures block processing; do not switch to an online provider. Confirmed 2026-10-13 |
 | MIR-DEPLOYMENT | The operator applies Mirza changes personally | Prepare reviewed local files and commands; do not deploy Mirza. Resume read-only verification after operator rollout |
 | GROUP-SCOPE | Helpdesk, Network, DWE, VOIP | Support-group destinations use verified live IDs |
 | GROUP-OWNERSHIP | DWE owns the named platforms and system administration; Network and VOIP use their related subjects/descriptions | Use the [service catalog](service-ownership.md); everything else stays in Helpdesk; live IDs remain pending |
@@ -20,9 +21,9 @@ This register does not introduce another approval process for development.
 | PROCESS-PRODUCER-ACCOUNT | n8n uses a dedicated ServiceDesk technician account for child creation | A verified configured creator ID may flag an unregistered automation ticket for review. Creator identity alone neither proves a parent relationship nor establishes that another ticket is standalone. Confirmed 2026-10-06 |
 | PROCESS-PRODUCER-HISTORY | All onboarding/offboarding children, including historical tickets, have always used the same dedicated n8n ServiceDesk account | With this explicit coverage contract and one verified configured account ID, a stable different creator plus a non-root template can rule out lifecycle membership after positive mappings are checked. Missing creator metadata or unmatched n8n-created tickets remain blocked. The historical guarantee is operator evidence; samples verify identity, not all history. Confirmed 2026-10-12 |
 | GROUP-INTAKE | Any request currently in Helpdesk, from email or UI, regardless of template | Listen regardless of assignment; apply a separate unassigned-only group-write gate |
-| GROUP-PRESERVE | Preserve technician assignments for ordinary group correction | Keep the exact technician value; assigned ordinary tickets receive no group write |
-| GROUP-SIDE-EFFECT | Changing the support group clears the technician | Ordinary correction is unassigned-only; the approved Mirza DWE handoff is an exception |
-| NO-TECHNICIANS | Do not assign tickets to technicians | No technician selection or writes; allow server-side clearing only during the approved Mirza DWE handoff |
+| GROUP-PRESERVE | Do not override human assignments for any group change | Keep the exact technician value; no group move when assigned. Treat unknown assignment provenance conservatively. Updated 2026-10-14 |
+| GROUP-SIDE-EFFECT | Changing the support group clears the technician | All agent group moves, including Mirza DWE handoff, require an unassigned ticket |
+| NO-TECHNICIANS | Do not assign tickets to technicians | No technician selection, clearing, restoration or writes |
 | INNER-TEMPLATES | Ordinary template A/template B mismatch outside Helpdesk | Do nothing, including mismatches across specialized support groups |
 | NO-TEMPLATE-WRITES | Template changes are not possible | Always preserve the submitted template; no template-write capability |
 | MIR-APPROVAL | Dedicated Mirza templates use their existing required ServiceDesk approvals | Fulfill after final required approval; no extra sign-off or self-approval |
@@ -31,7 +32,7 @@ This register does not introduce another approval process for development.
 | MIR-FALLBACK-APPROVAL | Other Helpdesk templates have no Mirza approval steps; move supported requests to DWE, put On Hold, notify the DWE person in charge with the ticket link | Fulfill only after that authorized person changes the held ticket to Open; preserve the original template |
 | MIR-INCHARGE | Each ServiceDesk support group has `incharge_group`; resolve the DWE person in charge dynamically from that group's value | Read the DWE support-group field for notification recipient and approval actor; do not hardcode a person's email |
 | MIR-INCHARGE-SNAPSHOT | Keep the originally resolved person for that request even if `incharge_group` later changes | Persist the approver at handoff; notification retries and approval checks use that identity; new requests resolve the current field |
-| MIR-HANDOFF-TECHNICIAN | Move fallback Mirza requests to DWE even when a technician is assigned; allow the assignment to be cleared | Explicit exception to preservation for this handoff only; no technician assignment, selection, or restoration |
+| MIR-HANDOFF-TECHNICIAN | Preserve human assignments during Mirza handoff too | Prior clearing exception revoked 2026-10-14. Assigned fallback tickets need manual handling; no group move |
 | MIR-TEMPLATES | Mirza Access Request; Mirza API Key; other templates from Helpdesk may be used | Dedicated templates qualify; start fallback workflows only in Helpdesk, then continue their tracked DWE approval handoff |
 | MIR-JOBS | Create API key; increase reasoning for API key; increase reasoning for team; add model access for team; add user to a team for model access; increase person budget; increase API-key budget; increase team budget | Explicit eight-operation allowlist; all other requested Mirza matters are no-ops |
 | MIR-PERSON | Person means email for LibreChat UI access and budget | Access through additive membership in one or many non-Tool teams |
@@ -108,12 +109,13 @@ status to On Hold, then verify both values. Notify the configured DWE person in
 charge through the Mattermost bot with the ticket link and a configured review
 template. Do not select a technician or change the ticket template.
 
-The operator explicitly allows this supported Mirza handoff even when a
-technician is assigned: the DWE group move may clear that assignment. Record
-the before/after technician values and this exception in the audit. Do not
-select, assign, restore, or write a technician. Check concurrent changes to
-group, content, and approval terms before moving; this exception applies only
-to this handoff, not ordinary group correction or other Mirza ticket writes.
+On 2026-10-14 the operator revoked the earlier assigned-ticket handoff exception.
+Do not move an assigned ticket to DWE or clear its technician. Treat an existing
+assignment as human when its origin is unverified. Assigned fallback requests
+need manual handling; only an unassigned ticket may enter an automatic group
+handoff. Approved Mirza jobs that preserve the current group/technician can still
+run. Recheck assignment and concurrent group/content/approval changes before a
+move, using a verified atomic update contract rather than a client-only read.
 
 Continue monitoring the persisted workflow after the ticket moves out of Helpdesk.
 Resolve the DWE person in charge dynamically from the DWE support group's
@@ -161,8 +163,8 @@ if it is null, use DWE's in-charge person, regardless of the ticket's current
 support group. Reuse the request's original DWE in-charge identity if recorded;
 otherwise resolve DWE's ServiceDesk `incharge_group` and persist that identity
 when first needed. Preserve group, template, and technician during this
-clarification; only the separately authorized DWE approval handoff may move the
-group and clear its technician. Ask through the Mattermost bot with the ticket
+clarification; the DWE approval handoff may move only an unassigned ticket.
+Never clear a human assignment. Ask through the Mattermost bot with the ticket
 link and specific missing details using the approved message below.
 
 > Mirza request #{ticket_id} needs clarification: {ticket_link}. Required details: {missing_details}. Add these details in a ticket note and change its status from On Hold to Open so processing can continue.
@@ -444,14 +446,14 @@ expiry explicitly included in owned approved terms do not add new ticket jobs.
   confirmed.
 - Helpdesk-group intake across email/UI regardless of template: confirmed;
   replaces template-based listening restrictions. Technician clearing on group
-  changes is confirmed; ordinary group writes require unassigned tickets.
+  changes is confirmed; all group writes require unassigned tickets.
 - Specialized-template no-op rule and eight Mirza jobs: confirmed.
 - Dedicated Mirza templates plus Helpdesk-only fallback templates: confirmed.
 - Other Helpdesk templates lack Mirza approval steps: confirmed. Their supported
   requests use DWE/On Hold, a Mattermost ticket-link notification to the person in
   charge, and that person's Open transition as approval. Actor identity/API
-  evidence remain pending. The handoff may move assigned tickets and allow
-  ServiceDesk to clear their technician; that exception is confirmed.
+  evidence remain pending. The earlier assigned-ticket clearing exception was
+  revoked on 2026-10-14; assigned fallback requests need manual handling.
 - Dynamic DWE in-charge resolution from each ServiceDesk support group's
   `incharge_group` field: confirmed. API exposure, value format, and identity
   resolution remain pending; a secret-safe
@@ -513,7 +515,8 @@ ServiceDesk/Mirza/Mattermost write connectors.
 
 Resolve operator questions one at a time. Technician behavior is answered:
 support-group changes clear the technician. Other Helpdesk templates use the
-confirmed DWE handoff, including permission to clear an existing assignment.
+confirmed DWE handoff for unassigned tickets only. Human assignment preservation
+now applies to all group moves, superseding the old Mirza clearing exception.
 The source is answered: each ServiceDesk support group has `incharge_group`.
 In-charge changes, review message wording, direct-message delivery, and handling
 unspecified details, DWE clarification fallback, direct key DM, completion

@@ -1,0 +1,272 @@
+[
+  {
+    "id": "network-en",
+    "text": "Open a network route to port 443.",
+    "classification": {
+      "kind": "ordinary",
+      "group": "Network"
+    }
+  },
+  {
+    "id": "network-fa",
+    "text": "دسترسی به پورت ۴۴۳ شبکه می‌خواهم.",
+    "classification": {
+      "kind": "ordinary",
+      "group": "Network"
+    }
+  },
+  {
+    "id": "voip-en",
+    "text": "My telephone extension cannot make calls.",
+    "classification": {
+      "kind": "ordinary",
+      "group": "VOIP"
+    }
+  },
+  {
+    "id": "voip-fa",
+    "text": "تلفن داخلی تماس نمی‌گیرد.",
+    "classification": {
+      "kind": "ordinary",
+      "group": "VOIP"
+    }
+  },
+  {
+    "id": "dwe-en",
+    "text": "Cannot sign in to Mattermost.",
+    "classification": {
+      "kind": "ordinary",
+      "group": "DWE"
+    }
+  },
+  {
+    "id": "dwe-fa",
+    "text": "دسترسی جیرا می‌خواهم.",
+    "classification": {
+      "kind": "ordinary",
+      "group": "DWE"
+    }
+  },
+  {
+    "id": "helpdesk-en",
+    "text": "My laptop keyboard is broken.",
+    "classification": {
+      "kind": "ordinary",
+      "group": "Helpdesk"
+    }
+  },
+  {
+    "id": "helpdesk-fa",
+    "text": "چاپگر کار نمی‌کند.",
+    "classification": {
+      "kind": "ordinary",
+      "group": "Helpdesk"
+    }
+  },
+  {
+    "id": "create_api_key",
+    "text": "Create a Mirza API key for owner@example.invalid for a monitoring integration in Synthetic Department, using its mapped Synthetic-Tool team. Initial budget 15 USD per 30d, permanent/no expiry.",
+    "classification": {
+      "kind": "mirza",
+      "operation": "create_api_key"
+    },
+    "job": {
+      "operation": "create_api_key",
+      "owner_email": "owner@example.invalid",
+      "tool_team": {
+        "kind": "existing_tool",
+        "team_id": "tool-team"
+      },
+      "purpose_ref": "purpose-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "budget_limit": 15,
+      "budget_duration": "30d",
+      "expires_at": null
+    }
+  },
+  {
+    "id": "increase_api_key_reasoning",
+    "text": "Increase Mirza reasoning to high for model-a on key-metadata-1 owned by owner@example.invalid in Synthetic-Tool, permanent/no expiry.",
+    "classification": {
+      "kind": "mirza",
+      "operation": "increase_api_key_reasoning"
+    },
+    "job": {
+      "operation": "increase_api_key_reasoning",
+      "owner_email": "owner@example.invalid",
+      "key_ref": "key-metadata-1",
+      "tool_team_id": "tool-team",
+      "model_ids": [
+        "model-a"
+      ],
+      "reasoning_level": "high",
+      "expires_at": null
+    }
+  },
+  {
+    "id": "increase_team_reasoning",
+    "text": "سطح reasoning تیم Synthetic-UI در میرزا را برای model-a به high افزایش دهید؛ دائمی و بدون انقضا.",
+    "classification": {
+      "kind": "mirza",
+      "operation": "increase_team_reasoning"
+    },
+    "job": {
+      "operation": "increase_team_reasoning",
+      "team_id": "ui-team",
+      "team_kind": "non_tool",
+      "model_ids": [
+        "model-a"
+      ],
+      "reasoning_level": "high",
+      "expires_at": null
+    }
+  },
+  {
+    "id": "grant_team_model_access",
+    "text": "Grant model-b access to Mirza Synthetic-UI team, permanent/no expiry.",
+    "classification": {
+      "kind": "mirza",
+      "operation": "grant_team_model_access"
+    },
+    "job": {
+      "operation": "grant_team_model_access",
+      "team_id": "ui-team",
+      "team_kind": "non_tool",
+      "model_ids": [
+        "model-b"
+      ],
+      "expires_at": null
+    }
+  },
+  {
+    "id": "add_person_to_non_tool_team",
+    "text": "کاربر owner@example.invalid را به تیم Synthetic-UI در میرزا اضافه کنید تا از model-a استفاده کند؛ دائمی و بدون انقضا.",
+    "classification": {
+      "kind": "mirza",
+      "operation": "add_person_to_non_tool_team"
+    },
+    "job": {
+      "operation": "add_person_to_non_tool_team",
+      "person_email": "owner@example.invalid",
+      "team_id": "ui-team",
+      "requested_model_id": "model-a",
+      "expires_at": null
+    }
+  },
+  {
+    "id": "increase_person_budget",
+    "text": "Increase the Mirza LibreChat budget for person owner@example.invalid by 5 USD, from 10 to 15 USD.",
+    "classification": {
+      "kind": "mirza",
+      "operation": "increase_person_budget"
+    },
+    "job": {
+      "operation": "increase_person_budget",
+      "person_email": "owner@example.invalid",
+      "budget": {
+        "amount": 5,
+        "interpretation": "delta",
+        "baseline_limit": 10,
+        "desired_limit": 15
+      }
+    }
+  },
+  {
+    "id": "increase_api_key_budget",
+    "text": "Increase the Mirza budget for key-metadata-1 owned by owner@example.invalid in Synthetic-Tool by 5 USD, from 10 to 15 USD.",
+    "classification": {
+      "kind": "mirza",
+      "operation": "increase_api_key_budget"
+    },
+    "job": {
+      "operation": "increase_api_key_budget",
+      "owner_email": "owner@example.invalid",
+      "key_ref": "key-metadata-1",
+      "tool_team_id": "tool-team",
+      "budget": {
+        "amount": 5,
+        "interpretation": "delta",
+        "baseline_limit": 10,
+        "desired_limit": 15
+      }
+    }
+  },
+  {
+    "id": "increase_team_budget",
+    "text": "بودجه تیم Synthetic-Tool در میرزا را ۵ دلار افزایش دهید؛ از ۱۰ به ۱۵ دلار.",
+    "classification": {
+      "kind": "mirza",
+      "operation": "increase_team_budget"
+    },
+    "job": {
+      "operation": "increase_team_budget",
+      "team_id": "tool-team",
+      "team_kind": "tool",
+      "budget": {
+        "amount": 5,
+        "interpretation": "delta",
+        "baseline_limit": 10,
+        "desired_limit": 15
+      }
+    }
+  },
+  {
+    "id": "unsupported-0",
+    "text": "Give model-b directly to my Mirza API key.",
+    "classification": {
+      "kind": "unsupported_mirza"
+    }
+  },
+  {
+    "id": "unsupported-1",
+    "text": "Add my Mirza API key to Synthetic-UI non-tool team.",
+    "classification": {
+      "kind": "unsupported_mirza"
+    }
+  },
+  {
+    "id": "unsupported-2",
+    "text": "Move my Mirza API key into another Tool team.",
+    "classification": {
+      "kind": "unsupported_mirza"
+    }
+  },
+  {
+    "id": "unsupported-3",
+    "text": "Please reset my Mirza password.",
+    "classification": {
+      "kind": "unsupported_mirza"
+    }
+  },
+  {
+    "id": "assigned",
+    "text": "Open a network route to port 443.",
+    "technician": true,
+    "classification": {
+      "kind": "ordinary",
+      "group": "Network"
+    },
+    "reason": "human_assignment_preserved"
+  },
+  {
+    "id": "outside-helpdesk",
+    "text": "Cannot sign in to Mattermost.",
+    "group": "sd-network",
+    "reason": "outside_helpdesk_scope"
+  },
+  {
+    "id": "lifecycle",
+    "text": "Create a Mirza API key for owner@example.invalid.",
+    "lifecycle": true,
+    "reason": "excluded_lifecycle_process"
+  },
+  {
+    "id": "duplicate-expired",
+    "text": "Create a Mirza API key for owner@example.invalid for a monitoring integration in Synthetic Department, using its mapped Synthetic-Tool team. Initial budget 15 USD per 30d, permanent/no expiry.",
+    "duplicate": true,
+    "classification": {
+      "kind": "mirza",
+      "operation": "create_api_key"
+    },
+    "missing": "additional_key_needed"
+  }
+]

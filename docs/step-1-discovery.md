@@ -225,8 +225,9 @@ and verify atomic revision/precondition protection for assignments made between
 read and write; a re-fetch alone cannot guarantee preservation. Do not restore
 technicians through compensating writes. Dedicated-template Mirza fulfillment
 may run on assigned tickets while preserving group and technician. The other-
-Helpdesk-template Mirza approval handoff has an explicit exception: the move to
-DWE may clear an existing assignment; no technician selection/writes are allowed.
+Helpdesk-template Mirza approval handoff also requires a null technician. The
+earlier clearing exception was revoked on 2026-10-14; assigned requests need
+manual handling without an agent group move or technician write.
 
 Mirza intake accepts `Mirza Access Request` and `Mirza API Key`; other templates
 start workflows only while the request is in Helpdesk. Continue persisted DWE
@@ -553,8 +554,9 @@ Step 1's full exit condition is not met until capabilities and policy examples
 are confirmed by their owners.
 
 The operator will provide historical examples. Collect remaining answers one
-question at a time. Technician clearing, both Mirza approval paths, and permission
-to clear an assignment during the fallback DWE handoff are confirmed. Dynamic
+question at a time. Technician clearing and both Mirza approval paths are confirmed.
+On 2026-10-14 the operator revoked the assigned-ticket DWE handoff exception:
+all group moves must preserve human assignments and require a null technician. Dynamic
 in-charge lookup through each ServiceDesk support group's `incharge_group` is
 also confirmed. Each request keeps its originally resolved in-charge person even
 if the group field changes. DWE approval message wording and delivery to that

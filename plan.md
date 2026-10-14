@@ -23,8 +23,9 @@ have no Mirza approval steps: move a supported request to DWE, set On Hold, and
 notify the DWE person in charge, dynamically resolved from `incharge_group`,
 through Mattermost with the ticket link. Continue
 the tracked workflow in DWE and fulfill only after that authorized person changes
-it from On Hold to Open. This handoff may clear an existing technician assignment;
-never select or assign a technician and never change the template. Untracked
+it from On Hold to Open. This handoff requires a null technician: human assignments
+must be preserved, including Mirza requests (updated 2026-10-14). Never select or
+assign a technician and never change the template. Untracked
 other-template tickets outside Helpdesk remain ineligible for Mirza execution.
 
 During Mirza processing, unspecified or unclear details put the ticket On Hold.
@@ -128,8 +129,9 @@ and content-based Network/VOIP ownership; everything else stays in Helpdesk.
 Status: policy baseline and planning handoff ready on 2026-10-06; Steps 2–3 implemented locally.
 Repository discovery is documented. The operator confirmed
 ServiceDesk Plus 15.1 Build 15100, no staging environment, Helpdesk-group intake
-regardless of template/source, ordinary technician preservation, the Mirza DWE
-handoff exception, and two approval paths for Mirza fulfillment. Installed API
+regardless of template/source, technician preservation for all group changes,
+and two approval paths for Mirza fulfillment. The earlier assigned-Mirza handoff
+exception was revoked on 2026-10-14. Installed API
 contracts and remaining execution details still need verification. See
 [integration findings](docs/step-1-discovery.md),
 [decision register](docs/step-1-decisions.md), and
@@ -184,8 +186,9 @@ integration exit condition has not yet been met.
 - [x] Define other-Helpdesk-template approval: supported Mirza requests move to
       DWE/On Hold; notify its person in charge through Mattermost with the ticket
       link. That person's subsequent Open transition authorizes the job.
-- [x] Permit this Mirza handoff to move assigned tickets and allow ServiceDesk
-      to clear the technician. This exception never authorizes assigning people.
+- [x] Preserve human assignments for the Mirza handoff too. The operator revoked
+      the prior clearing exception on 2026-10-14; assigned fallback requests need
+      manual handling, with no automatic group move or technician write.
 - [x] Resolve the DWE person in charge dynamically from the DWE ServiceDesk
       support group's `incharge_group` field; each support group has this field.
       Do not configure a fixed person's email.
@@ -269,7 +272,8 @@ integration exit condition has not yet been met.
 - [ ] Collect a restricted, representative ticket evaluation set covering Persian,
       English, conflicting templates, ambiguous subjects, and access requests.
       The operator will provide examples. Resolve remaining operator questions
-      one at a time. Both approval paths and the handoff exception are answered;
+      one at a time. Both approval paths are answered; the handoff clearing
+      exception was revoked on 2026-10-14;
       dynamic ServiceDesk in-charge resolution and per-request identity retention
       and approval message wording/DM delivery are confirmed. Missing/unclear
       details use human clarification with DWE fallback and the approved message;
@@ -502,6 +506,10 @@ model-generated reviewer list, ordering flag or approval record as authority.
 
 ## Step 5 — Build ticket listening and classification in observation mode
 
+- [x] Use only `local-qwen3.8` for agent inference (operator decision, 2026-10-13).
+      Reject enabled inference configured with any other alias. No online-provider
+      model selection or fallback; local-model unavailability blocks the proposal.
+      Installed Mirza gateway: `https://mirza.tapsi.tech/api/v1`.
 - [x] Add a pinned minimal PydanticAI inference package for the LiteLLM-compatible
       provider; check compatibility with existing Python/Pydantic/HTTP dependencies
       and resource limits. Use offline model fixtures before any live inference.
@@ -538,21 +546,30 @@ model-generated reviewer list, ordering flag or approval record as authority.
       Listen to assigned Helpdesk tickets, but emit no group write when a
       technician is set: the operator confirms group changes clear technicians.
       This restriction does not block an approved supported Mirza job that
-      preserves the ticket's group and technician. The supported Mirza approval
-      handoff is a separate path with explicitly allowed technician clearing.
+      preserves the ticket's group and technician. Mirza approval handoffs also
+      require a null technician; no group-change exception remains.
 - [x] Record sanitized proposals/no-op reasons locally. Verify bilingual routing
       and all eight extraction contracts with offline model fixtures; add the
       reviewer-label accuracy/latency/cost report.
-- [ ] Review actual model outcomes against representative English/Persian tickets,
-      including approved Mirza terms and no-ops; verify Docker image/resources and
-      native PostgreSQL/Temporal recovery before activating Step 6.
+- [x] Verify Docker image/resources and native PostgreSQL/Temporal recovery:
+      restart both servers, replay histories, reuse cached inference without new
+      calls, and exercise native concurrent claim/budget locks. Keep CPU/RAM capped
+      and stop this project's containers afterward.
+- [x] Evaluate actual `local-qwen3.8` outcomes against 24 labeled English/Persian
+      synthetic request cases: all eight Mirza jobs, routing, forbidden operations,
+      assignment/process guards and duplicate expired-key clarification. All match
+      after compatibility fixes; retain the initial failed case and corrected
+      result in the report. Production observation review remains an activation gate.
 
-**Implementation status (2026-10-13):** Implemented and verified offline; polling
-and inference default off. No production writes or live inference were performed.
-All 399 tests, Ruff, both Compose configurations and SQLite migration checks pass.
-The offline worker/client probe peaked at 138 MiB RSS; worker caps remain 192 MiB.
-See [Step 5 observations](docs/step-5-observation.md). Live quality and native runtime
-validation remain rollout prerequisites, not approval authority.
+**Implementation status (updated 2026-10-14):** Implemented; polling and inference default
+off. The earlier native recovery, replay, concurrent locking and image/migration
+checks passed. The expanded offline suite now passes all 449 tests. Verification
+used 0.70 CPU combined across the five
+services, with unchanged RAM caps; the healthy stack used about 610 MiB. Its
+containers are stopped. Real local-Qwen responses match all 24 synthetic cases
+after fixes; production observation review remains an activation gate. See
+[Step 5 observations](docs/step-5-observation.md). Step 6 contract preparation has
+started; installed atomic update protection is still unverified.
 
 **Exit condition:** Observation correctly separates group correction, the eight
 Mirza jobs, and no-ops; ordinary specialized-template mismatches outside Helpdesk
@@ -560,9 +577,20 @@ have no proposed writes.
 
 ## Step 6 — Enable support-group correction only
 
-- [ ] Before activation, complete Step 5 reviewed live model quality and native
-      PostgreSQL/Temporal restart/resource checks; preserve observation defaults
-      until both these and installed write/precondition contracts are verified.
+- [x] Implement an operator-only, dispatch-queue read-only preflight and group-only
+      review payload builder. Recheck ticket provenance, policy, assignment,
+      destination, lifecycle coverage and source evidence. Store only unauthorized
+      observations; no executable intake, actions, inference or spend.
+- [ ] Run the extended native replay check for the new preflight workflow.
+      Its offline/sandbox tests pass; Docker is inactive on 2026-10-14. Existing
+      Step 5 native recovery evidence remains valid for the earlier workflows.
+- [x] Review the public on-premises edit-request contract and document the precise
+      installed conditional-update requirement in
+      [Step 6 contract review](docs/step-6-group-correction.md). No production PUT
+      was issued; public documentation does not establish atomic write protection.
+- [ ] Before activation, review production observation quality and verify installed
+      write/precondition contracts. Native recovery and bounded synthetic live-model
+      evaluation pass; preserve observation defaults until all activation gates pass.
 - [ ] Implement a group-only update tool with a verified destination ID. Its
       payload must exclude technician, template, category, status, and reply fields.
 - [ ] Re-fetch group, content, technician, revision and process association before
@@ -584,6 +612,19 @@ have no proposed writes.
 **Exit condition:** Eligible Helpdesk-group tickets reach the correct support
 group without technician/template/status/reply changes, including repeat delivery
 and concurrent-edit scenarios.
+
+**Implementation status (2026-10-14):** Read-only preflight, payload constraints,
+operator isolation and dispatch workflow are implemented. Missing/malformed
+technician metadata fails the reader instead of becoming a null assignment.
+The active writer and Step 6 exit condition remain pending. Docker is inactive,
+so the extended native preflight check has not run. The supported installed
+conditional-update contract is requested from the operator; observation remains
+the only production mode supported by this path.
+The operator's 2026-10-14 answer confirms no group change for human-assigned
+tickets, including Mirza handoffs; it does not establish an installed atomic
+API contract. Policy v2 and per-event replay patches preserve that rule for new
+events while reconstructing historical v1 commands. Native historical replay
+must be verified with Docker before deploying this workflow change.
 
 ## Step 7 — Build the Mirza access policy and approval workflow
 
@@ -631,9 +672,9 @@ and concurrent-edit scenarios.
       and an LLM extraction alone never authorize execution.
       Do not invent an approval reset API or substitute another approver.
 - [ ] For other Helpdesk templates, persist the supported request's terms and
-      handoff identity, then move the ticket to DWE and set On Hold. The group
-      move may clear its technician, including an existing human assignment;
-      omit technician/template fields and verify the resulting group/status.
+      handoff identity, then move an unassigned ticket to DWE and set On Hold.
+      Preserve existing human assignments; assigned fallback requests need manual
+      handling. Omit technician/template fields and verify the resulting group/status.
 - [ ] Read `incharge_group` from the DWE support group in ServiceDesk and resolve the DWE
       notification recipient and approval identity. Record source revision/read
       time and resolved identity at handoff. Preserve that original person for
@@ -828,8 +869,8 @@ integration or policy questions are unresolved.
 The initial release is complete when:
 
 - Eligible requests currently in Helpdesk reach the responsible support group
-  regardless of template/source when unassigned. Ordinary corrections preserve
-  technicians; the supported Mirza DWE handoff may clear them. Ordinary specialized
+  regardless of template/source when unassigned. All group changes preserve human
+  assignments, including the Mirza DWE handoff. Ordinary specialized
   template mismatches outside Helpdesk produce no writes.
 - The eight supported approved Mirza jobs complete through verified provisioning
   or budget updates, secure key delivery when applicable, and a correct outcome.

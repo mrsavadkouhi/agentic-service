@@ -8,10 +8,28 @@ from temporalio.exceptions import WorkflowAlreadyStartedError
 from temporalio.workflow import ParentClosePolicy
 
 with workflow.unsafe.imports_passed_through():
-    from app.contracts.observation import ObservationReceipt, ObservationStart, PollBatch, PollStart
+    from app.contracts.observation import (
+        GroupPreflightStart,
+        ObservationReceipt,
+        ObservationStart,
+        PollBatch,
+        PollStart,
+    )
     from app.contracts.tickets import stable_id
 
 RETRY = RetryPolicy(maximum_attempts=3)
+
+
+@workflow.defn
+class GroupCorrectionPreflightWorkflow:
+    @workflow.run
+    async def run(self, request: GroupPreflightStart) -> ObservationReceipt:
+        return await workflow.execute_activity(
+            "prepare_group_correction_review", request,
+            result_type=ObservationReceipt, task_queue=request.dispatch_queue,
+            start_to_close_timeout=timedelta(seconds=180),
+            schedule_to_close_timeout=timedelta(seconds=600), retry_policy=RETRY,
+        )
 
 
 @workflow.defn

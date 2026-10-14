@@ -12,6 +12,7 @@ from app.connectors.http import ReadFailure
 from app.connectors.observation import ObservationSource
 from app.contracts.observation import (
     ClarificationDraft,
+    GroupPreflightStart,
     ObservationReceipt,
     ObservationResult,
     ObservationStart,
@@ -29,6 +30,7 @@ from app.contracts.tickets import (
     Tracking,
     stable_id,
 )
+from app.policies.group_correction import draft_issue
 from app.policies.tickets import POLICY_VERSION, evaluate
 
 
@@ -43,6 +45,54 @@ class ObservationActivities:
             return await asyncio.to_thread(function, *args)
         except Exception:
             raise ApplicationError("Observation storage unavailable", type="ObservationStorage")
+
+    @activity.defn(name="prepare_group_correction_review")
+    async def preflight(self, request: GroupPreflightStart) -> ObservationReceipt:
+        versions = self.inference.versions()
+        packet = None
+        result = self.base(request, "manual_review", "group_proposal_unverified")
+        identity = await self.store_call(self.repository.source_identity, request.observation_id)
+        if identity == ("servicedesk", request.ticket_id, "classify") and (
+            request.tenant_id == "servicedesk"
+        ):
+            prior = await self.store_call(self.repository.get, request.observation_id)
+            if prior:
+                try:
+                    packet = await self.source.collect(request.ticket_id)
+                    state, reason = draft_issue(prior, packet, versions)
+                    result = self.base(request, state, reason, packet)
+                    if reason == "native_atomic_group_update_unverified":
+                        if await self.source.current(packet):
+                            result = result.model_copy(update={
+                                "proposal": prior.proposal, "policy_reason": reason,
+                            })
+                        else:
+                            result = self.base(
+                                request, "manual_review", "group_context_changed", packet
+                            )
+                except Exception as error:
+                    reason = (error.reason if isinstance(error, ReadFailure)
+                              else "group_preflight_source_invalid")
+                    result = self.base(request, "manual_review", reason, packet)
+        # This is an observation record, never executable intake or action staging.
+        fingerprint = stable_id(
+            request.observation_id, packet.input_digest if packet else "unavailable",
+            result.reason_code, json.dumps(packet.groups, sort_keys=True) if packet else "{}",
+        )
+        result = result.model_copy(update={
+            "versions": {**versions, "group_preflight": "group-only-review-v1"}
+        })
+        observation_id = stable_id(
+            request.tenant_id, request.ticket_id, "group_preflight", fingerprint,
+            json.dumps(result.versions, sort_keys=True),
+        )
+        claimed = await self.store_call(
+            self.repository.claim, observation_id, request, "group_preflight", fingerprint,
+            result, Decimal(0), self.settings.inference_daily_budget_usd,
+        )
+        if claimed:
+            return await self.store_call(self.repository.finish, observation_id, result)
+        return await self.store_call(self.repository.receipt, observation_id)
 
     @activity.defn(name="poll_observation_candidates")
     async def poll(self, request: PollStart) -> PollBatch:
@@ -126,6 +176,11 @@ class ObservationActivities:
     def policy_reason(self, result, packet, catalog):
         if result.proposal is None:
             return result
+        if (isinstance(result.proposal, MirzaRequest)
+                and packet.ticket.template_id not in {"11401", "11702"}
+                and packet.ticket.group_id != packet.groups["DWE"]
+                and packet.ticket.technician is not None):
+            return result.model_copy(update={"policy_reason": "human_assignment_preserved"})
         status = {"Open": "Open", "Onhold": "On Hold", "On Hold": "On Hold"}.get(
             packet.ticket.status_name
         )
@@ -225,7 +280,7 @@ class ObservationActivities:
             Decimal(str(self.settings.inference_max_cost_usd))
             if (
                 gate is None
-                and self.inference.ready()
+                and self.inference.ready(stage)
                 and self.inference.cost_bound(stage)
                 <= Decimal(str(self.settings.inference_max_cost_usd))
             )

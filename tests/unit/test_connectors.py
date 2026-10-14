@@ -82,6 +82,30 @@ async def test_transport_get_only_does_not_follow_redirect_or_log_secret_url(cap
     await http.close()
 
 
+@pytest.mark.parametrize("assignment", ["missing", False, [], {}])
+async def test_missing_or_malformed_technician_is_not_a_verified_null_assignment(assignment):
+    raw = desk_ticket()
+    if assignment == "missing":
+        del raw["request"]["technician"]
+    else:
+        raw["request"]["technician"] = assignment
+    http = transport(lambda request: httpx.Response(200, json=raw), ServiceDesk.PATHS)
+    try:
+        result = await ServiceDesk(http).ticket("1")
+        assert result.status != "ok" and result.data is None
+    finally:
+        await http.close()
+
+
+async def test_explicit_null_technician_remains_a_verified_unassigned_read():
+    http = transport(lambda request: httpx.Response(200, json=desk_ticket()), ServiceDesk.PATHS)
+    try:
+        result = await ServiceDesk(http).ticket("1")
+        assert result.status == "ok" and result.data.technician is None
+    finally:
+        await http.close()
+
+
 @pytest.mark.parametrize("status", [401, 403, 404, 500])
 async def test_non_success_is_not_an_empty_result(status):
     http = transport(

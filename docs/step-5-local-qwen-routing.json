@@ -1,0 +1,138 @@
+{
+  "model": "local-qwen3.8",
+  "endpoint": "https://mirza.tapsi.tech/api/v1",
+  "data": "synthetic; labels derive from operator-confirmed ownership rules",
+  "classifier_prompt_digest": "7063235f7e5868a3b2d1e390565e21a82f545fa86b658e67eff4c3a74b20a71b",
+  "note": "Earlier completed routing batch; classifier instructions are unchanged by the extraction boundary fix. Recorded usage includes cached receipts.",
+  "external_changes": 0,
+  "results": [
+    {
+      "case": "network-en",
+      "passed": true,
+      "classification": {
+        "kind": "ordinary",
+        "group": "Network",
+        "operation": null
+      },
+      "reason_code": "support_group_proposal_only",
+      "model_requests": 2,
+      "input_tokens": 1667,
+      "output_tokens": 320,
+      "estimated_cost_usd": 6.534000000000001e-05,
+      "latency_ms": 6618,
+      "authorized": false
+    },
+    {
+      "case": "network-fa",
+      "passed": true,
+      "classification": {
+        "kind": "ordinary",
+        "group": "Network",
+        "operation": null
+      },
+      "reason_code": "support_group_proposal_only",
+      "model_requests": 2,
+      "input_tokens": 1620,
+      "output_tokens": 200,
+      "estimated_cost_usd": 5.24e-05,
+      "latency_ms": 4890,
+      "authorized": false
+    },
+    {
+      "case": "voip-en",
+      "passed": true,
+      "classification": {
+        "kind": "ordinary",
+        "group": "VOIP",
+        "operation": null
+      },
+      "reason_code": "support_group_proposal_only",
+      "model_requests": 2,
+      "input_tokens": 1574,
+      "output_tokens": 165,
+      "estimated_cost_usd": 4.7980000000000005e-05,
+      "latency_ms": 3942,
+      "authorized": false
+    },
+    {
+      "case": "voip-fa",
+      "passed": true,
+      "classification": {
+        "kind": "ordinary",
+        "group": "VOIP",
+        "operation": null
+      },
+      "reason_code": "support_group_proposal_only",
+      "model_requests": 2,
+      "input_tokens": 1621,
+      "output_tokens": 206,
+      "estimated_cost_usd": 5.3020000000000004e-05,
+      "latency_ms": 4285,
+      "authorized": false
+    },
+    {
+      "case": "dwe-en",
+      "passed": true,
+      "classification": {
+        "kind": "ordinary",
+        "group": "DWE",
+        "operation": null
+      },
+      "reason_code": "support_group_proposal_only",
+      "model_requests": 2,
+      "input_tokens": 1621,
+      "output_tokens": 280,
+      "estimated_cost_usd": 6.042e-05,
+      "latency_ms": 6324,
+      "authorized": false
+    },
+    {
+      "case": "dwe-fa",
+      "passed": true,
+      "classification": {
+        "kind": "ordinary",
+        "group": "DWE",
+        "operation": null
+      },
+      "reason_code": "support_group_proposal_only",
+      "model_requests": 2,
+      "input_tokens": 1764,
+      "output_tokens": 349,
+      "estimated_cost_usd": 7.018000000000001e-05,
+      "latency_ms": 6954,
+      "authorized": false
+    },
+    {
+      "case": "helpdesk-en",
+      "passed": true,
+      "classification": {
+        "kind": "ordinary",
+        "group": "Helpdesk",
+        "operation": null
+      },
+      "reason_code": "helpdesk_already_correct",
+      "model_requests": 2,
+      "input_tokens": 1594,
+      "output_tokens": 305,
+      "estimated_cost_usd": 6.238e-05,
+      "latency_ms": 6021,
+      "authorized": false
+    },
+    {
+      "case": "helpdesk-fa",
+      "passed": true,
+      "classification": {
+        "kind": "ordinary",
+        "group": "Helpdesk",
+        "operation": null
+      },
+      "reason_code": "helpdesk_already_correct",
+      "model_requests": 2,
+      "input_tokens": 1648,
+      "output_tokens": 348,
+      "estimated_cost_usd": 6.776e-05,
+      "latency_ms": 7380,
+      "authorized": false
+    }
+  ]
+}

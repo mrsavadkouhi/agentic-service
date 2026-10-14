@@ -16,14 +16,23 @@ from temporalio.common import WorkflowIDConflictPolicy
 from app import __version__
 from app.api.intake import authorize, configured_catalog, deliver_notifications, router
 from app.connectors.factory import Connectors
-from app.contracts.observation import ObservationStart, PollStart
+from app.contracts.observation import (
+    GroupPreflightRequest,
+    GroupPreflightStart,
+    ObservationStart,
+    PollStart,
+)
 from app.contracts.tickets import Email, stable_id
 from app.logging import configure_logging, correlation_id
 from app.settings import Settings, WorkerRole
 from app.storage.database import check_database, make_engine, worker_is_ready
 from app.storage.observations import ObservationRepository
 from app.storage.ticket_repository import TicketRepository
-from app.workflows.observation import ObservationListenerWorkflow, ObservationTicketWorkflow
+from app.workflows.observation import (
+    GroupCorrectionPreflightWorkflow,
+    ObservationListenerWorkflow,
+    ObservationTicketWorkflow,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +108,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return await asyncio.to_thread(
             request.app.state.observations.latest, "servicedesk", ticket_id
         )
+
+    @app.post("/v1/group-corrections/{ticket_id}/preflight", status_code=202)
+    async def prepare_group_correction(
+        ticket_id: str, body: GroupPreflightRequest, request: Request
+    ):
+        authorize(request, config.operator_token)
+        if not re.fullmatch(r"[1-9][0-9]{0,29}", ticket_id):
+            raise HTTPException(422, "Invalid ticket reference")
+        owner_id = "group-preflight-" + stable_id("servicedesk", ticket_id, body.observation_id)
+        await request.app.state.temporal.start_workflow(
+            GroupCorrectionPreflightWorkflow.run,
+            GroupPreflightStart("servicedesk", ticket_id, body.observation_id,
+                                config.dispatch_task_queue),
+            id=owner_id, task_queue=config.dispatch_task_queue,
+            id_conflict_policy=WorkflowIDConflictPolicy.USE_EXISTING,
+        )
+        return {"workflow_id": owner_id, "authorized": False, "external_write_capabilities": []}
 
     @app.get("/v1/contexts/{ticket_id}")
     async def context(
@@ -210,13 +236,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "registered_workflow": "RuntimeProbeWorkflow",
             "ticket_contracts_implemented": True,
             "registered_workflows": ["RuntimeProbeWorkflow", "TicketWorkflow",
-                                     "ObservationListenerWorkflow", "ObservationTicketWorkflow"],
+                                     "ObservationListenerWorkflow", "ObservationTicketWorkflow",
+                                     "GroupCorrectionPreflightWorkflow"],
             "synthetic_connector_enabled": config.enable_fixture_execution,
             "read_only_connectors_implemented": True,
             "read_observation_handoff_implemented": True,
             "production_execution_authority_verified": False,
             "observation_listener_enabled": config.observation_listener_enabled,
             "typed_observation_agents_implemented": True,
+            "group_correction_preflight_implemented": True,
+            "group_correction_atomic_write_contract_verified": False,
             "inference_enabled": config.inference_enabled or config.worker_inference_enabled,
         }
 

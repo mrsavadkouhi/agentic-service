@@ -68,7 +68,7 @@ class Settings(BaseSettings):
     worker_inference_enabled: bool = False
     inference_url: str | None = None
     inference_token: SecretStr | None = None
-    inference_model: str = "unconfigured"
+    inference_model: str = "local-qwen3.8"
     inference_timeout_seconds: float = Field(default=30, gt=0, le=60)
     inference_request_limit: int = Field(default=3, ge=1, le=4)
     inference_tool_limit: int = Field(default=2, ge=0, le=4)
@@ -111,10 +111,11 @@ class Settings(BaseSettings):
         ):
             raise ValueError("Observation listener requires observation modes")
         if self.inference_enabled:
+            if self.inference_model != "local-qwen3.8":
+                raise ValueError("Agent inference requires the local-qwen3.8 model")
             if (
                 not self.inference_url or not self.inference_token
                 or not self.inference_token.get_secret_value()
-                or self.inference_model == "unconfigured"
                 or self.inference_input_usd_per_million is None
                 or self.inference_output_usd_per_million is None
             ):
@@ -124,7 +125,8 @@ class Settings(BaseSettings):
             url = urlsplit(self.inference_url)
             if (
                 url.scheme != "https" or not url.hostname or url.username or url.password
-                or url.query or url.fragment or url.path not in {"", "/", "/v1", "/v1/"}
+                or url.query or url.fragment
+                or url.path not in {"", "/", "/v1", "/v1/", "/api/v1", "/api/v1/"}
             ):
                 raise ValueError("Inference requires a fixed HTTPS compatible API endpoint")
             if self.inference_token in (

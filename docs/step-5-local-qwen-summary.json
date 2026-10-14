@@ -1,0 +1,37 @@
+{
+  "reviewed_on": "2026-10-14",
+  "model": "local-qwen3.8",
+  "data": "Synthetic English/Persian requests; expected labels derived from operator-confirmed rules. No production ticket accuracy claim.",
+  "cases": 24,
+  "matched_cases_after_fixes": 24,
+  "routing_cases": 8,
+  "supported_jobs": 8,
+  "initial_remaining_batch_matched": 15,
+  "initial_remaining_batch_cases": 16,
+  "corrected_case": "duplicate-expired",
+  "recorded_successful_model_requests": 64,
+  "recorded_successful_estimated_accounting_units": 0.0035827,
+  "median_recorded_case_latency_ms": 7136.0,
+  "max_recorded_case_latency_ms": 35438,
+  "retained_ledger_reservations_including_failed_calls": [
+    {
+      "budget_day": "2026-10-13",
+      "reserved_accounting_units": "0.398000"
+    }
+  ],
+  "cumulative_reservation_cap": 0.4,
+  "rates_per_million_tokens": {
+    "input": 0.02,
+    "output": 0.1
+  },
+  "usage_note": "Mirza internal accounting rates, not provider billing. Metrics include saved classification receipts. Failed/uncertain reservations were retained.",
+  "external_configuration_ticket_or_message_changes": 0,
+  "all_results_authorized": false,
+  "sources": [
+    "step-5-local-qwen-routing.json",
+    "step-5-local-qwen-evaluation.json",
+    "step-5-local-qwen-clarification.json"
+  ],
+  "policy_version_at_run": "step-1-confirmed-v1",
+  "subsequent_policy_change": "step-1-confirmed-v2: human assignments are preserved for Mirza DWE handoffs too, confirmed 2026-10-14. Enforced by deterministic policy with offline regressions; language outputs from this report remain observation-only."
+}

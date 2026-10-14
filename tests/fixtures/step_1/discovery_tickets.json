@@ -1,5 +1,5 @@
 {
-  "schema_version": 14,
+  "schema_version": 15,
   "data_kind": "synthetic",
   "label_status": "confirmed_action_boundaries_with_proposed_service_labels",
   "production_authorization": false,
@@ -72,11 +72,12 @@
         "On Hold",
         "Open"
       ],
-      "allow_server_technician_clearing": true,
-      "technician_writes": false
+      "allow_server_technician_clearing": false,
+      "technician_writes": false,
+      "requires_unassigned_ticket": true
     },
-    "preserve_technician_exception": "supported_mirza_fallback_dwe_handoff_may_clear_existing_assignment",
-    "support_group_write_unassigned_gate_scope": "ordinary_group_correction_only",
+    "preserve_technician_exception": "none",
+    "support_group_write_unassigned_gate_scope": "all_group_changes_including_mirza_handoff",
     "mirza_fallback_incharge_variable": "incharge_group",
     "mirza_fallback_incharge_source_verified": false,
     "mirza_fallback_fixed_approver_email": false,
@@ -2343,30 +2344,18 @@
         "server_group_update_side_effect": "clear_technician"
       },
       "expected_when_activated": {
-        "action": "handoff_to_dwe_and_wait_for_approval",
+        "action": "manual_review",
         "operation": "increase_api_key_budget",
-        "destination_group": "DWE",
-        "destination_status": "On Hold",
-        "external_ticket_write_fields": [
-          "group",
-          "status"
-        ],
+        "external_writes": false,
+        "external_ticket_write_fields": [],
+        "preserve_group": true,
+        "preserve_technician": true,
         "preserve_template": true,
         "technician_write_fields": [],
-        "allow_server_technician_clearing": true,
-        "notification": {
-          "channel": "mattermost",
-          "recipient": "synthetic-dwe-incharge",
-          "template_ref": "synthetic-mirza-review",
-          "contains_ticket_link": true,
-          "recipient_resolution_variable": "incharge_group",
-          "recipient_resolution_source": "servicedesk_dwe_support_group",
-          "destination_kind": "direct_message",
-          "recipient_policy": "originally_resolved_dwe_incharge"
-        },
+        "allow_server_technician_clearing": false,
         "mirza_writes": false,
-        "reason": "Explicitly permitted Mirza DWE handoff clears assignment; initial Open is not approval.",
-        "expected_technician_ref": null
+        "reason": "Preserve the human assignment; the Mirza DWE handoff exception was revoked on 2026-10-14.",
+        "expected_technician_ref": "human-selected-technician"
       }
     },
     {

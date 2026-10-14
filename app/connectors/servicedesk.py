@@ -256,6 +256,10 @@ class ServiceDesk:
             row = data["request"]
             if str(row["id"]) != ticket_id:
                 raise ReadFailure("invalid", "wrong_ticket_identity")
+            if "technician" not in row or (
+                row["technician"] is not None and not isinstance(row["technician"], dict)
+            ):
+                raise ReadFailure("incomplete", "technician_assignment_unverified")
             template_id = identifier(row.get("template"))
             # Only an authoritative template-ID catalog can establish lifecycle roots.
             kind = self.lifecycle_template_ids.get(template_id)
@@ -265,7 +269,7 @@ class ServiceDesk:
                 ticket_id=ticket_id,
                 requester=person,
                 group_id=identifier(row.get("group")),
-                technician=identity(row["technician"]) if row.get("technician") else None,
+                technician=identity(row["technician"]) if row["technician"] is not None else None,
                 template_id=template_id,
                 category_id=identifier(row.get("category")),
                 status_id=identifier(row.get("status")),
