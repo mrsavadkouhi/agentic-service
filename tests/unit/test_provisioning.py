@@ -348,14 +348,16 @@ def test_personal_budget_is_not_spent_or_increased_to_make_tool_key_work(service
     assert owner["max_budget"] == "1" and owner["spend"] == "999"
 
 
-def test_expiring_non_key_grant_is_blocked_until_managed_expiry_exists(service):
+def test_expiring_non_key_grant_is_owned_by_the_approved_request(service):
     fields = {
         **case(2)[0].proposal.job.model_dump(),
         "expires_at": datetime.now(UTC) + timedelta(days=1),
     }
     op = service.seed(*case(2, fields=fields))
-    assert finish(service, op).reason_code == "managed_expiry_unavailable"
-    assert world(service, op)["teams"]["ui-team"]["metadata"] == {"keep": "fixture-unrelated"}
+    assert finish(service, op).state == "completed"
+    assert world(service, op)["teams"]["ui-team"]["metadata"]["reasoning_models"]["model-a"] == [
+        "high"
+    ]
 
 
 def test_reasoning_merge_folds_legacy_without_lowering_or_losing_unrelated_metadata():

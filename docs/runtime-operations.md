@@ -54,8 +54,14 @@ Readiness requires the expected schema revision. Startup does not call
 `create_all`. Review downgrade/data-loss behavior before using a downgrade; take
 a backup first. Temporal schemas are managed by the pinned Temporal setup image,
 not by application Alembic migrations.
-The current application revision is `0005_provisioning_fixtures`. It adds five
-isolated fixture fulfillment/claim/secret/message tables. Downgrading to
+Step 9 adds authenticated operation views, revision-bound fixture cancellation/
+resumption, conditional owned expiry and operator metrics. Its new Temporal
+workflow owns expiry timers; native writers remain disabled. See
+[lifecycle and recovery](step-9-lifecycle.md) for endpoints and retention limits.
+The current application revision is `0006_fixture_lifecycle`. It adds four
+ownership/recovery/audit tables above Step 8's five fixture tables. Downgrading to
+`0005_provisioning_fixtures` discards ownership/recovery evidence; do not downgrade
+while temporary grants remain outstanding. Further downgrading to
 `0004_mirza_reviews` removes their synthetic data and ciphertexts; review,
 observation and business tables remain intact. Keep private verification state
 and its vault key after a failed check; success removes only that run's temporary

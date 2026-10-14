@@ -34,6 +34,7 @@ from app.contracts.tickets import (
     stable_id,
 )
 from app.policies.mirza_review import review_mirza
+from app.policies.ownership import OwnershipLedger
 from app.policies.provisioning import (
     FulfillmentBusy,
     LostFixtureResponse,
@@ -202,8 +203,15 @@ class FixtureFulfillmentService:
         checked = review_mirza(event, auth, catalog, current)
         if checked.state not in {"ready", "no_op"} or checked.package is None:
             raise ProvisioningBlocked(checked.reason_code)
-        if getattr(job, "expires_at", None) is not None and not isinstance(job, CreateApiKey):
-            raise ProvisioningBlocked("managed_expiry_unavailable")
+        expiry = getattr(job, "expires_at", None)
+        if expiry is not None and expiry.tzinfo is None:
+            raise ProvisioningBlocked("expiry_timezone_unspecified")
+        if (
+            getattr(job, "expires_at", None) is not None
+            and not isinstance(job, CreateApiKey)
+            and job.expires_at <= datetime.now(UTC)
+        ):
+            raise ProvisioningBlocked("requested_grant_expiry_elapsed")
         if (
             isinstance(job, CreateApiKey)
             and job.expires_at is not None
@@ -296,7 +304,7 @@ class FixtureFulfillmentService:
                 cached = record.payload.get("commands", {}).get(str(command_index))
                 if cached:
                     return FulfillmentReceipt(**cached)
-                if record.state in {"completed", "blocked"}:
+                if record.state in {"completed", "blocked", "cancelled"}:
                     return FulfillmentReceipt(operation_id, record.state, "", record.reason_code)
                 event, job, catalog = self.context(record, world)
                 pending = self.phase(record, event, job, catalog, world)
@@ -334,6 +342,8 @@ class FixtureFulfillmentService:
             lost = False
             with Session(self.engine) as session, session.begin():
                 record = session.get(FulfillmentRecord, operation_id, with_for_update=True)
+                if record.state == "cancelled":
+                    return FulfillmentReceipt(operation_id, "cancelled", "", "operator_cancelled")
                 row = session.get(FixtureWorld, record.world_id, with_for_update=True)
                 step = session.get(FulfillmentStep, step_id, with_for_update=True)
                 if step.claim_ref != claim or step.state != "claimed":
@@ -366,6 +376,9 @@ class FixtureFulfillmentService:
                         "resolved_fixture" if phase == "resolve" else "fixture_phase_done"
                     )
                     payload = deepcopy(record.payload)
+                    payload["lifecycle_revision"] = payload.get("lifecycle_revision", 0) + 1
+                    if phase == "resolve":
+                        payload["completed_at"] = datetime.now(UTC).isoformat()
                     payload.setdefault("commands", {})[str(command_index)] = asdict(
                         FulfillmentReceipt(
                             operation_id,
@@ -388,7 +401,7 @@ class FixtureFulfillmentService:
         except ProvisioningBlocked as error:
             with Session(self.engine) as session, session.begin():
                 record = session.get(FulfillmentRecord, operation_id, with_for_update=True)
-                if record and record.state != "completed":
+                if record and record.state not in {"completed", "cancelled"}:
                     record.state, record.reason_code = "blocked", str(error)
             return FulfillmentReceipt(operation_id, "blocked", phase, str(error))
 
@@ -462,6 +475,7 @@ class FixtureFulfillmentService:
         if phase == "mutation":
             if record.payload["skip_mutation"]:
                 return {"no_change": True}
+            OwnershipLedger.register(session, record, world, job)
             if isinstance(job, CreateApiKey):
                 owner = self.owner(world, job.owner_email)
                 team_id = self.tool_team_id(job, operation_id)
@@ -498,6 +512,7 @@ class FixtureFulfillmentService:
                         ),
                     )
                 )
+                OwnershipLedger.created_key(session, record, world, job, key_ref)
                 return {"key_ref": key_ref, "secret_ref": secret_ref, "team_id": team_id}
             if isinstance(job, AddPersonToNonToolTeam):
                 owner = self.owner(world, job.person_email)
@@ -540,7 +555,7 @@ class FixtureFulfillmentService:
         if phase in {"user_dm", "staff_dm"}:
             delivery_id = self.step_id(operation_id, phase, recipient)
             description = world["descriptions"][event.workflow_id()]
-            summary = job.operation.replace("_", " ") + " verified"
+            summary = verified_summary(job, world, record.operation_id)
             if record.payload["completion_explanation_ref"]:
                 summary = (
                     "Additional key unnecessary; explanation: "
@@ -561,9 +576,11 @@ class FixtureFulfillmentService:
                     secret = self.cipher.open(secret_ref, saved.ciphertext)
                 except ValueError:
                     raise ProvisioningBlocked("generated_key_material_unavailable") from None
-                if (secret["owner_email"] != job.owner_email
-                        or secret["team_id"] != self.tool_team_id(job, operation_id)
-                        or "litellm-key-" + stable_id(secret["key"]) != secret["key_ref"]):
+                if (
+                    secret["owner_email"] != job.owner_email
+                    or secret["team_id"] != self.tool_team_id(job, operation_id)
+                    or "litellm-key-" + stable_id(secret["key"]) != secret["key_ref"]
+                ):
                     raise ProvisioningBlocked("generated_key_binding_mismatch")
                 body += " API key: " + secret["key"]
             # The simulated private post is encrypted too, never a public projection/body.
@@ -673,10 +690,50 @@ class FixtureFulfillmentService:
                 "state": row.state,
                 "reason_code": row.reason_code,
                 "execution_domain": "synthetic",
-                "job": row.payload["event"]["proposal"]["operation"],
+                "job": row.payload.get("archived_job")
+                or row.payload["event"]["proposal"]["operation"],
                 "deliveries": [
                     {"delivery_id": m.delivery_id, "recipient_ref": m.recipient_ref, "kind": m.kind}
                     for m in messages
                 ],
                 "external_calls": 0,
             }
+
+
+def verified_summary(job, world, operation_id):
+    """Summarize verified scope without key material or invented expiry."""
+    parts = [job.operation.replace("_", " ") + " verified"]
+    if isinstance(job, CreateApiKey):
+        parts += [
+            "Tool team: " + FixtureFulfillmentService.tool_team_id(job, operation_id),
+            "Budget limit: " + str(job.budget_limit),
+            "Reset duration: " + job.budget_duration,
+        ]
+    elif hasattr(job, "budget"):
+        collection = (
+            "keys" if hasattr(job, "key_ref") else ("teams" if hasattr(job, "team_id") else "users")
+        )
+        ref = (
+            job.key_ref
+            if collection == "keys"
+            else (
+                job.team_id
+                if collection == "teams"
+                else FixtureFulfillmentService.owner(world, job.person_email)["user_id"]
+            )
+        )
+        parts += [
+            "Scope: " + collection + "/" + ref,
+            "Verified budget limit: " + str(world[collection][ref]["max_budget"]),
+        ]
+    else:
+        parts += ["Scope: " + getattr(job, "key_ref", getattr(job, "team_id", ""))]
+        if hasattr(job, "model_ids"):
+            parts += ["Models: " + ", ".join(job.model_ids)]
+        if hasattr(job, "requested_model_id"):
+            parts += ["Model through team membership: " + job.requested_model_id]
+        if hasattr(job, "reasoning_level"):
+            parts += ["Reasoning: at least " + job.reasoning_level]
+    expiry = getattr(job, "expires_at", None)
+    parts += ["Approved expiry: " + (expiry.isoformat() if expiry else "none specified")]
+    return "; ".join(parts)

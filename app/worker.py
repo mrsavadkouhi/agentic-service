@@ -23,6 +23,7 @@ from app.storage.observations import ObservationRepository
 from app.storage.ticket_repository import TicketRepository
 from app.storage.workers import heartbeat
 from app.worker_health import marker_path
+from app.workflows.lifecycle import MirzaFixtureLifecycleWorkflow
 from app.workflows.mirza_review import MirzaPolicyReviewWorkflow
 from app.workflows.observation import (
     GroupCorrectionPreflightWorkflow,
@@ -87,13 +88,15 @@ async def serve(settings: Settings, role: WorkerRole) -> None:
             observed_activities = (
                 [observations.poll, observations.classify, observations.preflight]
                 if role == WorkerRole.DISPATCH
-                else [observations.extract, reviews.prepare, provisioning.advance]
+                else [observations.extract, reviews.prepare, provisioning.advance,
+                      provisioning.lifecycle, provisioning.resume]
             )
             observed_workflows = (
                 [ObservationListenerWorkflow, ObservationTicketWorkflow,
                  GroupCorrectionPreflightWorkflow]
                 if role == WorkerRole.DISPATCH
-                else [MirzaPolicyReviewWorkflow, MirzaFixtureFulfillmentWorkflow]
+                else [MirzaPolicyReviewWorkflow, MirzaFixtureFulfillmentWorkflow,
+                      MirzaFixtureLifecycleWorkflow]
             )
             worker = Worker(
                 client,

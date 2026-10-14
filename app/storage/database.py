@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.settings import Settings, WorkerRole
 from app.storage.models import RuntimeWorker
 
-SCHEMA_REVISION = "0005_provisioning_fixtures"
+SCHEMA_REVISION = "0006_fixture_lifecycle"
 
 
 def make_engine(settings: Settings) -> Engine:

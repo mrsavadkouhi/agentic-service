@@ -794,8 +794,10 @@ connectors and production activation remain disabled. See
       are verified. The local simulator does not establish those guarantees.
 
 The original production checklist below remains the activation requirement; its
-unchecked items are not satisfied by fixture writes. Temporary non-key grants
-stop with `managed_expiry_unavailable` until Step 9 implements safe expiry.
+unchecked items are not satisfied by fixture writes. At the Step 8 milestone,
+temporary non-key grants stopped with `managed_expiry_unavailable`; Step 9 adds
+conditional fixture expiry through its new timer-owning workflow. Native expiry
+still requires installed guarantees.
 
 - [ ] Introduce narrow internal administration operations implementing the eight
       supported jobs, read-back, and effective-access checks. Supporting membership
@@ -870,6 +872,38 @@ permission, authorized direct key DM, staff completion notification, and no
 secrets in logs/histories or duplicate keys.
 
 ## Step 9 — Add lifecycle management and operator recovery
+
+**Local milestone verified (2026-10-14):** Owned grants retain original baselines and
+independent approval claims. The new fixture lifecycle workflow conditionally
+expires approved temporary access, with durable Temporal timers and operator
+recovery. Native writers remain disabled. See
+[lifecycle and recovery](docs/step-9-lifecycle.md).
+
+- [x] Track request-owned model/membership/reasoning/budget changes and created
+      key expiry; preserve baselines, other grants and unrelated fields.
+- [x] Recompute original/remaining approved access at expiry; stop on external
+      value or cooperating-writer revision changes. Do not add offboarding,
+      department maintenance or a request-driven revocation job.
+- [x] Add a new timer-owning workflow without modifying the Step 8 workflow;
+      reject finite grants at the old/unknown activity workflow boundary.
+- [x] Expose authenticated projections and idempotent revision-bound recovery
+      commands. Cancellation stops future work and retains grants/approved expiry.
+      Resumption cannot bypass authority or unreconciled outcomes.
+- [x] Summarize verified scope, limits and expiry; retain independent message/status
+      phases and owner-only encrypted secret recovery.
+- [x] Add aggregate review/no-op/group, recovery/expiry, age/latency and conservative
+      model-reservation metrics with operator alert flags. No external alerts sent.
+- [x] Add a fixture-only terminal retention tombstone preserving ownership and
+      deduplication evidence; pending key recovery cannot be purged.
+- [x] Pass 563 offline tests and eight native PostgreSQL/Temporal workflows across
+      restart/replay, overdue expiry, independent membership, original key recovery
+      and the old-workflow expiry guard. Readiness, migration parity, lint,
+      dependency and Compose checks pass; containers stopped, volumes preserved.
+- [ ] Establish native ownership/concurrency/expiry/resolution contracts, production
+      retention/access policy and explicitly authorized pilot acceptance.
+
+The original production checklist below remains required for activation. Local
+fixture behavior does not establish native cleanup or production retention policy.
 
 - [ ] Reply with the actual verified outcome, summarize access and expiry, and
       set Resolved after verified fulfillment and required notifications. Verify

@@ -33,8 +33,15 @@ decisions; do not add new jobs or reinterpret approval authority without asking.
   as native execution authority. Keep raw generated keys in the private cipher/
   owner-delivery boundary, indexed activity receipts stable, and uncertain effects
   blocked without positive downstream evidence. Do not expose fixture seeding as
-  an API or register a native writer based on a simulation pass. Temporary non-key
-  grants remain blocked until safe ownership/expiry handling exists in Step 9.
+  an API or register a native writer based on a simulation pass.
+- Step 9 adds only synthetic ownership, conditional expiry and operator recovery.
+  Expiry follows approved terms and preserves original/independent access.
+  Equal-value external writes require cooperating provenance, not a fingerprint.
+  Unknown outcomes, missing secrets and changed authority cannot be overridden
+  by operator resumption. Cancellation retains grants and expiry; no general
+  offboarding or new revocation job is authorized. The new lifecycle workflow
+  owns expiry timers; preserve the original Step 8 workflow for replay.
+  Fixture retention is not approved production retention policy.
 - Temporal owns workflow state. Keep I/O in activities, and make activities
   idempotent before adding privileged actions. PostgreSQL stores projections/audit.
 - PydanticAI is the selected agent framework. Step 5 pins the minimal OpenAI

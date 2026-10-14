@@ -2,6 +2,7 @@ from alembic import context
 
 from app.settings import Settings
 from app.storage import (
+    lifecycle,  # noqa: F401 -- isolated synthetic ownership and recovery
     mirza_reviews,  # noqa: F401 -- register isolated Mirza policy previews
     observations,  # noqa: F401 -- register observation tables
     provisioning,  # noqa: F401 -- register synthetic provisioning tables

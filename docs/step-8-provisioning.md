@@ -6,6 +6,10 @@ network-free simulator. No native Mirza administrator, Mattermost sender or
 ServiceDesk writer is registered. Live fulfillment and production activation remain
 incomplete; existing approval/history and concurrent-update gates still apply.
 
+Step 9 now supplies conditional fixture ownership/expiry and a separate timer-owning
+workflow. Its guide supersedes this milestone's temporary non-key expiry blocker;
+native expiry remains disabled. See [lifecycle and recovery](step-9-lifecycle.md).
+
 ## Boundaries
 
 PydanticAI supplies the Step 5 typed proposal; the Step 7 policy calculates scope

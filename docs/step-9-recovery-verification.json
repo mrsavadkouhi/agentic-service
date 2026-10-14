@@ -1,0 +1,34 @@
+{
+  "verified_on": "2026-10-14",
+  "execution_domain": "synthetic",
+  "tested_image": "sha256:9e55f6a100a7d84ddc589772c2af38a565ca9b15953e0074d1fe76864d244807",
+  "offline": {
+    "passed": 563,
+    "existing_alembic_deprecation_warnings": 12,
+    "lint_passed": true,
+    "dependency_check_passed": true,
+    "compose_check_passed": true
+  },
+  "finish": {
+    "phase": "finish",
+    "native_workflows": 8,
+    "expiry_cases": 4,
+    "external_calls": 0,
+    "business_inbox_or_actions_created": 0,
+    "restart_timer_replay_verified": true,
+    "independent_membership_preserved": true,
+    "original_key_owner_only_recovery_verified": true,
+    "original_workflow_replay_verified": true,
+    "legacy_workflow_finite_grant_guard_verified": true
+  },
+  "stack": {
+    "api_and_workers_ready": true,
+    "migration_exit_code": 0,
+    "alembic_check": "No new upgrade operations detected.",
+    "persistent_volume_preserved": true,
+    "project_containers_stopped": true,
+    "steady_snapshot_memory_mib": 483.02,
+    "steady_cpu_limit_total": 0.7
+  },
+  "native_production_writers_enabled": false
+}

@@ -15,6 +15,7 @@ from temporalio.common import WorkflowIDConflictPolicy
 
 from app import __version__
 from app.api.intake import authorize, configured_catalog, deliver_notifications, router
+from app.api.lifecycle import lifecycle_router
 from app.connectors.factory import Connectors
 from app.contracts.mirza_review import MirzaReviewRequest, MirzaReviewStart
 from app.contracts.observation import (
@@ -88,6 +89,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app = FastAPI(title="ICT workflow runtime", version=__version__, lifespan=lifespan)
     app.include_router(router(config))
+    app.include_router(lifecycle_router(config))
 
     @app.post("/v1/observations/{ticket_id}", status_code=202)
     async def start_observation(ticket_id: str, request: Request):
@@ -277,6 +279,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "group_correction_atomic_write_contract_verified": False,
             "mirza_policy_review_implemented": True,
             "synthetic_provisioning_implemented": True,
+            "synthetic_lifecycle_implemented": True,
+            "native_expiry_connector_enabled": False,
             "native_provisioning_connector_enabled": False,
             "inference_enabled": config.inference_enabled or config.worker_inference_enabled,
         }
