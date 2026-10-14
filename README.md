@@ -28,6 +28,14 @@ read tools; every result has `authorized: false`. Provisioning, ticket updates
 and Mattermost delivery remain later steps. See the
 [observation guide](docs/step-5-observation.md) for configuration and evaluation.
 Local startup needs no production credentials.
+Step 6 adds operator-only support-group preflight proposals. Native restart/replay
+and historical policy-upgrade checks pass; live group updates remain disabled
+until ServiceDesk's atomic assignment protection is verified. See the
+[Step 6 contract review](docs/step-6-group-correction.md).
+Step 7 adds durable, operator-only Mirza access/approval previews on the Mirza
+queue. Packages calculate exact scopes and minimal changes; approval observations
+remain distinct from verified terms. No provisioning or delivery is enabled. See
+[Mirza policy review](docs/step-7-mirza-policy.md).
 
 ## Start locally
 
@@ -79,6 +87,10 @@ resource accounting. There is no Temporal UI or extra observability stack.
 Inspect usage with `docker compose stats --no-stream`; stop this project with
 `docker compose stop` when finished. Stop preserves the volume and does not affect
 other projects.
+For a smaller verification footprint, add `compose.resource-check.yaml`: the
+steady CPU cap becomes 0.70 CPUs with the same RAM limits. Temporal's SQL pools
+are explicitly bounded to leave PostgreSQL connections available for the API,
+workers and migrations. The Step 6 guide records the measured exhaustion and fix.
 
 ## Development
 
@@ -94,7 +106,7 @@ docker compose config --quiet
 runtime dependencies. The development lock adds the verification tools. Resolve
 and review both locks when changing dependencies. The Docker image includes only
 runtime dependencies and runs as a non-root user with a read-only filesystem.
-Step 5 adds migration `0003_observations`; upgrade before starting the new workers.
+Step 7 adds migration `0004_mirza_reviews`; upgrade before starting the new workers.
 
 `app/workflows` contains deterministic Temporal workflow code. External I/O and
 database writes belong in `app/activities`. `app/storage` holds application audit,

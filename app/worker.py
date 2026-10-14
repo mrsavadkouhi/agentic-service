@@ -9,6 +9,7 @@ from uuid import uuid4
 from temporalio.client import Client
 from temporalio.worker import Worker
 
+from app.activities.mirza_review import MirzaReviewActivities
 from app.activities.observation import ObservationActivities
 from app.activities.runtime_probe import RuntimeProbeActivities
 from app.activities.tickets import TicketActivities
@@ -16,10 +17,12 @@ from app.connectors.factory import Connectors
 from app.logging import configure_logging
 from app.settings import Settings, WorkerRole
 from app.storage.database import check_database, make_engine
+from app.storage.mirza_reviews import MirzaReviewRepository
 from app.storage.observations import ObservationRepository
 from app.storage.ticket_repository import TicketRepository
 from app.storage.workers import heartbeat
 from app.worker_health import marker_path
+from app.workflows.mirza_review import MirzaPolicyReviewWorkflow
 from app.workflows.observation import (
     GroupCorrectionPreflightWorkflow,
     ObservationListenerWorkflow,
@@ -75,16 +78,19 @@ async def serve(settings: Settings, role: WorkerRole) -> None:
             observations = ObservationActivities(
                 ObservationRepository(engine), connectors, settings
             )
+            reviews = MirzaReviewActivities(MirzaReviewRepository(engine),
+                                           observations.repository, connectors, settings,
+                                           observations.inference.versions)
             observed_activities = (
                 [observations.poll, observations.classify, observations.preflight]
                 if role == WorkerRole.DISPATCH
-                else [observations.extract]
+                else [observations.extract, reviews.prepare]
             )
             observed_workflows = (
                 [ObservationListenerWorkflow, ObservationTicketWorkflow,
                  GroupCorrectionPreflightWorkflow]
                 if role == WorkerRole.DISPATCH
-                else []
+                else [MirzaPolicyReviewWorkflow]
             )
             worker = Worker(
                 client,

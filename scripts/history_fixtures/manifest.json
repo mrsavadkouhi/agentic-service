@@ -1,0 +1,16 @@
+{
+  "source_commit": "e018ea2",
+  "purpose": "Frozen v1 policy/workflow for local synthetic historical-replay verification only. Never a runtime or live execution policy.",
+  "files": {
+    "policy_v1.py": {
+      "original_path": "app/policies/tickets.py",
+      "original_sha256": "9699dfe19e4d1e4cb471404d92ac16405df7eb045dc5562d94d45025e72e1938",
+      "fixture_sha256": "9699dfe19e4d1e4cb471404d92ac16405df7eb045dc5562d94d45025e72e1938"
+    },
+    "ticket_workflow_v1.py": {
+      "original_path": "app/workflows/tickets.py",
+      "original_sha256": "02ac0efd7240350a2cc7d181d0905ea86bf67dbbfa2ed7fc2d4540d74ab484fc",
+      "fixture_sha256": "d309c79001b8e45a6cd13a30cdb5fa10369b224660ade2f6ab7914692f97e67c"
+    }
+  }
+}

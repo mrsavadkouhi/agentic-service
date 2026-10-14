@@ -1,0 +1,29 @@
+{
+  "request_get_succeeded": true,
+  "metadata_get_succeeded": true,
+  "response_validators": {
+    "etag_present": false,
+    "strong_etag_present": false,
+    "last_modified_header_present": false
+  },
+  "technician_field_present": true,
+  "inspected_schema_fields": {
+    "id": {
+      "type": "long",
+      "read_only": true
+    },
+    "group": {
+      "type": "lookup"
+    },
+    "last_updated_time": {
+      "type": "datetime",
+      "read_only": true
+    },
+    "technician": {
+      "type": "lookup"
+    }
+  },
+  "atomic_update_contract_verified": false,
+  "write_requests": 0,
+  "note": "Read metadata/header presence does not verify conditional update enforcement."
+}

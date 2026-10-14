@@ -2,6 +2,7 @@ from alembic import context
 
 from app.settings import Settings
 from app.storage import (
+    mirza_reviews,  # noqa: F401 -- register isolated Mirza policy previews
     observations,  # noqa: F401 -- register observation tables
     tickets,  # noqa: F401 -- register ticket tables for migrations
 )

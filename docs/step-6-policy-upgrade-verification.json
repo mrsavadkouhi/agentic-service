@@ -1,0 +1,9 @@
+{
+  "legacy_v1_history_replayed": true,
+  "live_v2_event_preserves_human_assignment": true,
+  "upgraded_history_replayed": true,
+  "actions": 0,
+  "per_event_patch_markers_verified": true,
+  "external_service_or_model_calls": 0,
+  "business_database_writes": 0
+}

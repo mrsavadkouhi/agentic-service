@@ -15,6 +15,8 @@ intake, revision-checked cancellation, action recovery and reminder intent seman
 Step 5 adds an observation-only listener and two PydanticAI agents. Their switches
 default off and introduce no production writes. See
 [Step 5 operations and evaluation](step-5-observation.md).
+Step 7 adds isolated policy previews and pinned reviewer state, still without
+write connectors. See [Mirza policy review](step-7-mirza-policy.md).
 
 Each role has its own task queue and `AGENTIC_DISPATCH_PAUSED` or
 `AGENTIC_MIRZA_PAUSED` setting. A paused worker keeps a paused heartbeat but polls
@@ -48,8 +50,9 @@ Readiness requires the expected schema revision. Startup does not call
 `create_all`. Review downgrade/data-loss behavior before using a downgrade; take
 a backup first. Temporal schemas are managed by the pinned Temporal setup image,
 not by application Alembic migrations.
-The current application revision is `0003_observations`. It adds local proposals
-and daily inference reservations; downgrading removes those two tables.
+The current application revision is `0004_mirza_reviews`. It adds isolated Mirza
+policy previews and pinned review heads. Downgrading to `0003_observations` removes
+only those two new tables; observation and business data remain intact.
 
 ## Backups and restore
 

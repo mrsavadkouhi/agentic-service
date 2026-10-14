@@ -16,6 +16,7 @@ from temporalio.common import WorkflowIDConflictPolicy
 from app import __version__
 from app.api.intake import authorize, configured_catalog, deliver_notifications, router
 from app.connectors.factory import Connectors
+from app.contracts.mirza_review import MirzaReviewRequest, MirzaReviewStart
 from app.contracts.observation import (
     GroupPreflightRequest,
     GroupPreflightStart,
@@ -26,8 +27,10 @@ from app.contracts.tickets import Email, stable_id
 from app.logging import configure_logging, correlation_id
 from app.settings import Settings, WorkerRole
 from app.storage.database import check_database, make_engine, worker_is_ready
+from app.storage.mirza_reviews import MirzaReviewRepository
 from app.storage.observations import ObservationRepository
 from app.storage.ticket_repository import TicketRepository
+from app.workflows.mirza_review import MirzaPolicyReviewWorkflow
 from app.workflows.observation import (
     GroupCorrectionPreflightWorkflow,
     ObservationListenerWorkflow,
@@ -49,6 +52,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         )
         app.state.tickets = TicketRepository(app.state.engine)
         app.state.observations = ObservationRepository(app.state.engine)
+        app.state.mirza_reviews = MirzaReviewRepository(app.state.engine)
         delivery = None
         connectors = None
         try:
@@ -147,6 +151,29 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 raise HTTPException(422, "Invalid recipient reference") from None
         return await request.app.state.connectors.reader.read(ticket_id, recipient_email, key_ref)
 
+    @app.post("/v1/mirza-reviews/{ticket_id}", status_code=202)
+    async def prepare_mirza_review(ticket_id: str, body: MirzaReviewRequest, request: Request):
+        authorize(request, config.operator_token)
+        if not re.fullmatch(r"[1-9][0-9]{0,29}", ticket_id):
+            raise HTTPException(422, "Invalid ticket reference")
+        owner_id = "mirza-review-" + stable_id("servicedesk", ticket_id, body.observation_id)
+        await request.app.state.temporal.start_workflow(
+            MirzaPolicyReviewWorkflow.run,
+            MirzaReviewStart("servicedesk", ticket_id, body.observation_id,
+                             config.mirza_task_queue),
+            id=owner_id, task_queue=config.mirza_task_queue,
+            id_conflict_policy=WorkflowIDConflictPolicy.USE_EXISTING,
+        )
+        return {"workflow_id": owner_id, "authorized": False, "external_write_capabilities": []}
+
+    @app.get("/v1/mirza-reviews/{ticket_id}")
+    async def read_mirza_reviews(ticket_id: str, request: Request):
+        authorize(request, config.operator_token)
+        if not re.fullmatch(r"[1-9][0-9]{0,29}", ticket_id):
+            raise HTTPException(422, "Invalid ticket reference")
+        return await asyncio.to_thread(request.app.state.mirza_reviews.latest,
+                                       "servicedesk", ticket_id)
+
     @app.exception_handler(RequestValidationError)
     async def invalid_input(request, exc):
         return JSONResponse({"detail": "Invalid request"}, status_code=422)
@@ -237,7 +264,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "ticket_contracts_implemented": True,
             "registered_workflows": ["RuntimeProbeWorkflow", "TicketWorkflow",
                                      "ObservationListenerWorkflow", "ObservationTicketWorkflow",
-                                     "GroupCorrectionPreflightWorkflow"],
+                                     "GroupCorrectionPreflightWorkflow",
+                                     "MirzaPolicyReviewWorkflow"],
             "synthetic_connector_enabled": config.enable_fixture_execution,
             "read_only_connectors_implemented": True,
             "read_observation_handoff_implemented": True,
@@ -246,6 +274,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "typed_observation_agents_implemented": True,
             "group_correction_preflight_implemented": True,
             "group_correction_atomic_write_contract_verified": False,
+            "mirza_policy_review_implemented": True,
             "inference_enabled": config.inference_enabled or config.worker_inference_enabled,
         }
 

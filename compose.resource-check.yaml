@@ -1,0 +1,29 @@
+# Verification-only override; retain the base memory and PID caps.
+services:
+  postgres:
+    cpus: 0.15
+  temporal:
+    cpus: 0.25
+  api:
+    cpus: 0.10
+    stop_grace_period: 60s
+    healthcheck:
+      start_period: 120s
+      timeout: 15s
+      retries: 5
+  dispatch-worker:
+    cpus: 0.10
+    stop_grace_period: 60s
+    healthcheck:
+      start_period: 120s
+      timeout: 10s
+      retries: 5
+  mirza-worker:
+    cpus: 0.10
+    stop_grace_period: 60s
+    healthcheck:
+      start_period: 120s
+      timeout: 10s
+      retries: 5
+  migrate:
+    cpus: 0.10

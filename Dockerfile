@@ -15,6 +15,8 @@ COPY alembic.ini ./
 COPY scripts/verify_runtime.py ./scripts/verify_runtime.py
 COPY scripts/verify_tickets.py ./scripts/verify_tickets.py
 COPY scripts/verify_observations.py ./scripts/verify_observations.py
+COPY scripts/verify_policy_upgrade.py ./scripts/verify_policy_upgrade.py
+COPY scripts/history_fixtures ./scripts/history_fixtures
 USER agentic
 EXPOSE 8080
 CMD ["python", "-m", "uvicorn", "app.api.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8080", "--no-access-log"]

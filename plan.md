@@ -581,13 +581,20 @@ have no proposed writes.
       review payload builder. Recheck ticket provenance, policy, assignment,
       destination, lifecycle coverage and source evidence. Store only unauthorized
       observations; no executable intake, actions, inference or spend.
-- [ ] Run the extended native replay check for the new preflight workflow.
-      Its offline/sandbox tests pass; Docker is inactive on 2026-10-14. Existing
-      Step 5 native recovery evidence remains valid for the earlier workflows.
+- [x] Run the extended native replay check for the new preflight workflow.
+      PostgreSQL/Temporal restart, cached-input recovery, preflight provenance
+      rejection, workflow replay and history privacy checks pass on 2026-10-14.
+- [x] Replay actual v1 workflow history using the revised workflow, then process
+      a new v2 event in that same actor. Assigned tickets require manual review;
+      upgraded history and per-event patch records verify with zero actions.
 - [x] Review the public on-premises edit-request contract and document the precise
       installed conditional-update requirement in
       [Step 6 contract review](docs/step-6-group-correction.md). No production PUT
       was issued; public documentation does not establish atomic write protection.
+- [x] Inspect installed request response headers and metadata through authorized
+      GETs. No ETag/Last-Modified header or exposed revision field was observed;
+      `last_updated_time` is read-only. These reads do not prove conditional
+      enforcement. Save only sanitized schema/aggregate evidence.
 - [ ] Before activation, review production observation quality and verify installed
       write/precondition contracts. Native recovery and bounded synthetic live-model
       evaluation pass; preserve observation defaults until all activation gates pass.
@@ -616,34 +623,63 @@ and concurrent-edit scenarios.
 **Implementation status (2026-10-14):** Read-only preflight, payload constraints,
 operator isolation and dispatch workflow are implemented. Missing/malformed
 technician metadata fails the reader instead of becoming a null assignment.
-The active writer and Step 6 exit condition remain pending. Docker is inactive,
-so the extended native preflight check has not run. The supported installed
-conditional-update contract is requested from the operator; observation remains
-the only production mode supported by this path.
+The extended native preflight and historical policy-upgrade checks pass; the full
+offline suite passes 455 cases. Temporal's default pools exhausted local database
+connections; explicit pool limits fixed migration and recovery without increasing
+RAM limits. A verification-only override lowers the steady CPU cap to 0.70 CPUs.
+The active writer and Step 6 exit condition remain pending. Installed read-only
+schema/header checks did not establish a supported conditional-update contract;
+observation remains the only production mode supported by this path.
 The operator's 2026-10-14 answer confirms no group change for human-assigned
 tickets, including Mirza handoffs; it does not establish an installed atomic
 API contract. Policy v2 and per-event replay patches preserve that rule for new
-events while reconstructing historical v1 commands. Native historical replay
-must be verified with Docker before deploying this workflow change.
+events while reconstructing historical v1 commands. Native history replay and
+subsequent v2 assignment preservation are now verified. Activation still requires
+the installed atomic-update guarantee and reviewed production observation quality.
 
 ## Step 7 — Build the Mirza access policy and approval workflow
 
+**Local review implementation (2026-10-14):** Operator-only
+`MirzaPolicyReviewWorkflow` runs on the Mirza queue and persists isolated previews
+under migration `0004_mirza_reviews`. It revalidates current extraction receipts,
+native context and inventory, pins DWE/approval observations, calculates minimal
+scope-specific changes, and integrates the original-reviewer reconfirmation policy.
+Every result/intent remains unauthorized. Native approval sequence/terms authority,
+real ticket holds/handoffs, notifications and fulfillment remain gated. See
+[Step 7 policy review](docs/step-7-mirza-policy.md).
+Native recovery/replay of the new Mirza-queue workflow and PostgreSQL preview
+claim/retry checks pass; no business actions or external calls occurred. The API
+and workers reached readiness with the reduced resource profile. The offline
+suite passes 500 cases, with lint and schema checks passing. This completes
+the local review milestone; the unchecked installed authority/delivery work below
+must remain gated before production activation.
+
+- [x] Implement the durable operator-only policy review path, receipt provenance
+      checks, exact-scope packages, idempotent isolated storage and local review API.
+- [x] Integrate original-reviewer terms reconfirmation in normalized policy previews;
+      retain native required-stage gates and immutable original evidence. Store
+      first observed approval rows separately from verified approved-term baselines.
+- [x] Produce local hold/approval/clarification/completion intents and daily 10:00
+      Tehran reminder drafts, combining actions per recipient/day. These do not
+      alter tickets, send DMs or serve as delivery receipts.
 - [ ] Enforce the lifecycle-process exclusion before enrollment and before every
       ticket, notification or Mirza write, including dedicated-template requests.
-- [ ] Accept only `create_api_key`, `increase_api_key_reasoning`,
+      Review collection and packages already enforce this; privileged activities
+      must repeat the check in Step 8.
+- [x] Accept only `create_api_key`, `increase_api_key_reasoning`,
       `increase_team_reasoning`, `grant_team_model_access`,
       `add_person_to_non_tool_team`, `increase_person_budget`,
       `increase_api_key_budget`, and `increase_team_budget`.
       Reject executable plans containing any other requested operation.
-- [ ] Resolve a person from their authoritative email; resolve user-team membership
+- [x] Resolve a person from their authoritative email; resolve user-team membership
       to a non-Tool team for UI model access. Do not write a personal model list.
-- [ ] Resolve key owner email and exactly one Tool-team ID; keep that key's scope
+- [x] Resolve key owner email and exactly one Tool-team ID; keep that key's scope
       separate from the owner's personal budget and non-Tool team memberships.
-- [ ] Emit no-op for direct key-model grants and key reassignment requests. Do not
+- [x] Emit no-op for direct key-model grants and key reassignment requests. Do not
       reinterpret them as a team-wide model grant or non-Tool user-membership job.
-- [ ] Resolve team reasoning/model/budget requests to the explicitly approved
+- [x] Resolve team reasoning/model/budget requests to the explicitly approved
       LiteLLM team and its Tool/non-Tool kind; never infer it from an ICT group.
-- [ ] Define access packages specifying target scope, team memberships, models,
+- [x] Define access packages specifying target scope, team memberships, models,
       reasoning ceilings, budget/default, duration/default, recipient identity,
       and evidence from the applicable dedicated-template or DWE approval path.
 - [ ] Extract a typed proposal; whenever a required detail is missing/unclear
@@ -675,11 +711,13 @@ must be verified with Docker before deploying this workflow change.
       handoff identity, then move an unassigned ticket to DWE and set On Hold.
       Preserve existing human assignments; assigned fallback requests need manual
       handling. Omit technician/template fields and verify the resulting group/status.
-- [ ] Read `incharge_group` from the DWE support group in ServiceDesk and resolve the DWE
+- [x] Read `incharge_group` from the DWE support group in ServiceDesk and resolve the DWE
       notification recipient and approval identity. Record source revision/read
       time and resolved identity at handoff. Preserve that original person for
       notifications and approvals on this request even if the field changes.
       Resolve the current field for new requests; never hardcode a global email.
+      Review captures the identity/source digest/read time when first needed;
+      `handoff_verified` remains false until a real protected handoff is implemented.
 - [ ] Notify the originally resolved DWE person in charge in their Mattermost DM
       through the bot using
       a review template containing the ticket link. Persist notification delivery
@@ -700,7 +738,7 @@ must be verified with Docker before deploying this workflow change.
       Combine actions for the same ticket/recipient/day, revalidate response and
       process context before sending, and stop when the gate is satisfied or
       the request ends. Reminders never change ticket state or run a Mirza job.
-- [ ] Check existing permissions and calculate the smallest required change.
+- [x] Check existing permissions and calculate the smallest required change.
       Per-person requests must not silently broaden a shared team's grants.
 - [ ] Before new key creation, reconcile any key already created by this operation,
       then inspect complete owner/key metadata for the selected Tool team. If an
@@ -717,8 +755,10 @@ must be verified with Docker before deploying this workflow change.
       then set Resolved. Preserve all existing keys, including expired ones.
       Do not infer refusal from duplicate presence or Open alone. Retry messages
       and resolution independently without creating a key or asking again.
-- [ ] Store approvals and produce dry-run plans containing proposed operations and
+- [x] Store approvals and produce dry-run plans containing proposed operations and
       expected effective access, without issuing keys or granting permissions.
+      First-read approval observations remain distinct from an authoritative
+      original approval/terms baseline; native preview authority is never inferred.
 
 **Exit condition:** Reviewed policy examples produce the expected decisions,
 including unauthorized approvals and attempts to change recipients or budgets.

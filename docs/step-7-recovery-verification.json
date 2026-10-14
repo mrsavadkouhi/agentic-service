@@ -1,0 +1,29 @@
+{
+  "start": {
+    "phase": "start",
+    "fixture_model_requests": 3,
+    "external_calls": 0,
+    "business_inbox_or_actions_created": 0,
+    "replay_verified": false,
+    "group_preflight_replay_verified": false,
+    "mirza_policy_review_replay_verified": false,
+    "mirza_review_claim_locks_verified": false
+  },
+  "finish": {
+    "phase": "finish",
+    "fixture_model_requests": 3,
+    "external_calls": 0,
+    "business_inbox_or_actions_created": 0,
+    "replay_verified": true,
+    "group_preflight_replay_verified": true,
+    "mirza_policy_review_replay_verified": true,
+    "mirza_review_claim_locks_verified": true
+  },
+  "stack": {
+    "api_and_workers_ready": true,
+    "migration_exit_code": 0,
+    "project_containers_stopped": true,
+    "alembic_check": "No new upgrade operations detected.",
+    "persistent_volume_preserved": true
+  }
+}

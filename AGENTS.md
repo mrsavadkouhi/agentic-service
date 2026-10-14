@@ -19,6 +19,15 @@ decisions; do not add new jobs or reinterpret approval authority without asking.
   payloads. Keep its results unauthorized and outside executable intake/actions.
   No native writer exists until installed atomic revision/technician protection
   is verified; two reads or a local lock do not establish that contract.
+  Native preflight recovery and v1-to-v2 history upgrade checks now pass. Frozen
+  sources under `scripts/history_fixtures` are synthetic verification only; never
+  import them into application activities or use them as a live policy choice.
+- Step 7 adds operator-only Mirza policy previews, exact-scope packages and pinned
+  review records. These remain unauthorized and outside executable intake/action
+  tables. The first approval observation is not a verified approved-terms baseline.
+  Preserve original reviewers and DWE identity pins; native source sequence and
+  approved-term authority remain unverified. Do not infer them from a note match.
+  Provisioning, ticket updates and notification delivery remain Step 8 work.
 - Temporal owns workflow state. Keep I/O in activities, and make activities
   idempotent before adding privileged actions. PostgreSQL stores projections/audit.
 - PydanticAI is the selected agent framework. Step 5 pins the minimal OpenAI
@@ -60,3 +69,6 @@ decisions; do not add new jobs or reinterpret approval authority without asking.
 - Local resources are limited. Keep Compose caps, build/check sequentially,
   monitor this project's CPU/RAM, and stop its containers after verification.
   Never stop unrelated containers or delete persistent volumes as cleanup.
+  Retain explicit Temporal SQL pool limits: default pools exhausted the local
+  database's 57 application slots. `compose.resource-check.yaml` provides the
+  lower CPU verification profile; see the Step 6 guide for measurements.
