@@ -1,3 +1,22 @@
+# Shared agent routing
+
+Start with [.agents/README.md](.agents/README.md) and the
+[architecture overview](.agents/architecture/overview.md). These canonical,
+tool-independent playbooks supplement the repository instructions below; they
+do not change scope, approval authority, write restrictions or commit policy.
+
+- Reports, errors, logs and deployed-state questions follow the
+  [diagnostic agent](.agents/diagnostic-agent.md). Update its embedded `AGT-0NN`
+  ledger after every investigation, including repeat or inconclusive checks.
+- Features, fixes, refactoring, design and rollout preparation follow the
+  [developer agent](.agents/developer-agent.md). Every task, including research
+  or blocked work, requires a dated `DEV-NNN` entry in the
+  [developer changelog](.agents/records/developer-changelog.md); maintain
+  architecture and consequential decisions through the shared index.
+- Mixed requests start with diagnosis, then hand evidence and issue IDs to the
+  developer. Both records are mandatory and cross-linked when a fix changes an
+  incident's status. A local fix does not establish deployment or resolution.
+
 # Repository instructions
 
 This repository implements internal ICT workflows. `plan.md` and

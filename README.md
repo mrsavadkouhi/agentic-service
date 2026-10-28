@@ -45,6 +45,17 @@ operator recovery/metrics. Cleanup preserves independent grants and stops on
 external changes. Production lifecycle activation remains pending. See
 [lifecycle and operator recovery](docs/step-9-lifecycle.md).
 
+## Agent guidance
+
+Start with the [shared agent index](.agents/README.md) and
+[architecture overview](.agents/architecture/overview.md). The canonical
+[diagnostic](.agents/diagnostic-agent.md) and
+[developer](.agents/developer-agent.md) playbooks maintain incident and development
+records across tools. [AGENTS.md](AGENTS.md) retains the repository's authority
+and execution restrictions. Existing decision registers, operational guides and
+verification evidence remain under `docs/`, indexed from `.agents/`; this guidance
+does not enable native writers or change approval or commit policy.
+
 ## Start locally
 
 ```bash
